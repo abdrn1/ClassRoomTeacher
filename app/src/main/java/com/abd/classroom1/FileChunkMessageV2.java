@@ -1,18 +1,28 @@
 package com.abd.classroom1;
 
-import java.nio.ByteBuffer;
-
 /**
  * Created by Abd on 3/10/2016.
  */
 public class FileChunkMessageV2 {
+
+    final static String FILE = "FILE";
+    final static String EXAM = "EXAM";
 
     byte[] chunk; // chunk of bytes from the file;
     String senderID;
     String senderName;
     String[] recivers;
     String fileName;
+    String filetype;
     long chunkCounter = 0; // use it to know new file and end of file.
+
+    public FileChunkMessageV2() {
+    }
+
+    public FileChunkMessageV2(String sename, String seid) {
+        this.senderName = sename;
+        this.senderID = seid;
+    }
 
     public byte[] getChunk() {
         return chunk;
@@ -30,16 +40,6 @@ public class FileChunkMessageV2 {
         this.chunkCounter = chunkCounter;
     }
 
-
-
-    public FileChunkMessageV2(){
-    }
-
-    public FileChunkMessageV2(String sename,String seid ){
-        this.senderName= sename;
-        this.senderID= seid;
-    }
-
    /* public int getFileSize() {
         return fileSize;
     }
@@ -47,6 +47,14 @@ public class FileChunkMessageV2 {
     public void setFileSize(int fileSize) {
         this.fileSize = fileSize;
     }*/
+
+    public String getFiletype() {
+        return filetype;
+    }
+
+    public void setFiletype(String filetype) {
+        this.filetype = filetype;
+    }
 
     public String getFileName() {
         return fileName;

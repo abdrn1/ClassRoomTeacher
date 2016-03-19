@@ -1,19 +1,18 @@
 package com.abd.classroom1;
 
 import android.app.Activity;
+import android.app.Fragment;
 import android.content.Intent;
 import android.database.Cursor;
 import android.graphics.PorterDuff;
 import android.net.Uri;
 import android.os.Bundle;
-import android.app.Fragment;
 import android.provider.MediaStore;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ListView;
@@ -39,19 +38,22 @@ public class ActiveUsersFragment extends Fragment {
     // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
     private static final String ARG_PARAM1 = "param1";
     private static final String ARG_PARAM2 = "param2";
+    private static int FILE_SELECT_CODE = 2;
+    private static int EXAM_SELECT_CODE = 3;
     private ListView listview;
     private List<ClientModel> l1;
     private ClientListAdapter clientListAdapter;
     private Client client;
     private UserLogin iam;
-
-    private static int FILE_SELECT_CODE = 2;
-
     // TODO: Rename and change types of parameters
     private String mParam1;
     private String mParam2;
 
     private OnFragmentInteractionListener mListener;
+
+    public ActiveUsersFragment() {
+        // Required empty public constructor
+    }
 
     /**
      * Use this factory method to create a new instance of
@@ -69,10 +71,6 @@ public class ActiveUsersFragment extends Fragment {
         args.putString(ARG_PARAM2, param2);
         fragment.setArguments(args);
         return fragment;
-    }
-
-    public ActiveUsersFragment() {
-        // Required empty public constructor
     }
 
     public void setClient(Client cl) {
@@ -97,18 +95,20 @@ public class ActiveUsersFragment extends Fragment {
         super.onActivityCreated(savedInstanceState);
 
         listview = (ListView) getActivity().findViewById(R.id.clients_listview);
-        l1 = new ArrayList<ClientModel>();
+        l1 = new ArrayList<>();
         clientListAdapter = new ClientListAdapter(getActivity(), l1);
         l1.add(new ClientModel("3", "Hassan", R.drawable.a1));
         l1.add(new ClientModel("4", "Mohammed", R.drawable.a2));
         l1.add(new ClientModel("5", "ZAKI", R.drawable.a3));
         listview.setAdapter(clientListAdapter);
-        Button sendfile = (Button) getActivity().findViewById(R.id.btnsendfile);
-        Button btnsend = (Button) getActivity().findViewById(R.id.btnSend);
+        ImageButton sendfile = (ImageButton) getActivity().findViewById(R.id.btnsendfile);
+        ImageButton btnsend = (ImageButton) getActivity().findViewById(R.id.btnSend);
+        ImageButton btnStartExam = (ImageButton) getActivity().findViewById(R.id.btn_start_exam);
         final EditText inputMsg = (EditText) getActivity().findViewById(R.id.inputMsg);
         // Give Button Animation effect On press Button
-        buttonEffect((View) sendfile);
-        buttonEffect((View) btnsend);
+        GeneralUtil.buttonEffect(sendfile);
+        GeneralUtil.buttonEffect(btnsend);
+        GeneralUtil.buttonEffect(btnStartExam);
 
         sendfile.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -134,7 +134,23 @@ public class ActiveUsersFragment extends Fragment {
                 }
             }
         });
+
+        // Start New Exam
+        btnStartExam.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+                intent.setType("file/xml");
+                startActivityForResult(intent, EXAM_SELECT_CODE);
+                Toast.makeText(getActivity(),
+                        "Select XML files Only", Toast.LENGTH_LONG).show();
+            }
+        });
+
     }
+
+///
+
 
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
@@ -161,7 +177,7 @@ public class ActiveUsersFragment extends Fragment {
             //  client.sendTCP(fblock);
             try {
                 Log.d("INFO", "READ AND SEND FILE HERE");
-                SendUtil.readAndSendFile(path, client, iam,getSelectedRecivers());
+                SendUtil.readAndSendFile(path, client, iam, getSelectedRecivers(), FileChunkMessageV2.FILE);
 
             } catch (IOException e) {
                 Toast.makeText(getActivity(),
@@ -170,6 +186,33 @@ public class ActiveUsersFragment extends Fragment {
 
 
             }
+        } else if (requestCode == EXAM_SELECT_CODE && resultCode == Activity.RESULT_OK
+                && null != data) {
+            final Uri uri = data.getData();
+            String path = getRealPathFromURI(uri);
+            Log.d("INFO", path);
+            Toast.makeText(getActivity(),
+                    "Exam Loaded", Toast.LENGTH_SHORT).show();
+
+            Log.d("INFO", iam.getUserName());
+            Log.d("INFO", iam.getUserType());
+
+            FileChunkMessageV2 fblock = new FileChunkMessageV2();
+            fblock.setSenderName(iam.getUserName());
+            fblock.setSenderID(iam.getUserID());
+            //  client.sendTCP(fblock);
+            try {
+                Log.d("INFO", "READ AND SEND EXAM HERE");
+                SendUtil.readAndSendFile(path, client, iam, getSelectedRecivers(), FileChunkMessageV2.EXAM);
+
+            } catch (IOException e) {
+                Toast.makeText(getActivity(),
+                        "Erroe While Sending Exam", Toast.LENGTH_SHORT).show();
+                e.printStackTrace();
+
+
+            }
+
         }
 
     }
@@ -201,7 +244,7 @@ public class ActiveUsersFragment extends Fragment {
     }
     private String[] getSelectedRecivers(){
         String[] recivers = null;
-        List<String> selectedClients = new ArrayList<String>();
+        List<String> selectedClients = new ArrayList<>();
         for (ClientModel temp : l1) {
             if (temp.isClientSelected()) {
                 selectedClients.add(temp.getClientID());

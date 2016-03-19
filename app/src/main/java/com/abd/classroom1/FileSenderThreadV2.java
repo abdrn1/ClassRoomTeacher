@@ -5,12 +5,8 @@ import android.util.Log;
 import com.esotericsoftware.kryonet.Client;
 
 import java.io.ByteArrayOutputStream;
-import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.io.RandomAccessFile;
-import java.nio.ByteBuffer;
-import java.nio.channels.FileChannel;
 
 /**
  * Created by Abd on 3/10/2016.
@@ -63,6 +59,7 @@ public class FileSenderThreadV2  extends Thread {
                 chunkFromFile.setChunkCounter(chunkcounter);
                 chunkFromFile.setChunk(currentchunk);
                 chunkFromFile.setFileName(imMessage.getFileName());
+                chunkFromFile.setFiletype(imMessage.getFiletype());
                 // send Recivers on the first packet only
                 if (chunkcounter == 1L) {
                     chunkFromFile.setRecivers(imMessage.getRecivers());
