@@ -52,6 +52,8 @@ public class ActiveUsersFragment extends Fragment {
 
     private OnFragmentInteractionListener mListener;
 
+    boolean isLock = true;
+
     public ActiveUsersFragment() {
         // Required empty public constructor
     }
@@ -105,6 +107,8 @@ public class ActiveUsersFragment extends Fragment {
         ImageButton sendfile = (ImageButton) getActivity().findViewById(R.id.btnsendfile);
         ImageButton btnsend = (ImageButton) getActivity().findViewById(R.id.btnSend);
         ImageButton btnStartExam = (ImageButton) getActivity().findViewById(R.id.btn_start_exam);
+        ImageButton locksend = (ImageButton) getActivity().findViewById(R.id.btnLock);
+
         final EditText inputMsg = (EditText) getActivity().findViewById(R.id.inputMsg);
         // Give Button Animation effect On press Button
         GeneralUtil.buttonEffect(sendfile);
@@ -113,7 +117,7 @@ public class ActiveUsersFragment extends Fragment {
         listview.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                Toast.makeText(getActivity(),"hello : " +l1.get(position).getClientName(), Toast.LENGTH_SHORT).show();
+                Toast.makeText(getActivity(), "hello : " + l1.get(position).getClientName(), Toast.LENGTH_SHORT).show();
             }
         });
 
@@ -139,6 +143,14 @@ public class ActiveUsersFragment extends Fragment {
                     sendTextMessage(tempMsg);
                     inputMsg.setText("");
                 }
+            }
+        });
+
+        locksend.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Toast.makeText(getActivity().getApplicationContext(), "lock sent",Toast.LENGTH_LONG).show();
+                sendLockMessage();
             }
         });
 
@@ -249,6 +261,19 @@ public class ActiveUsersFragment extends Fragment {
         client.sendTCP(currTm);
 
     }
+
+    public void sendLockMessage(){
+        String[] receivers = getSelectedRecivers();
+        LockMessage lockMessage = new LockMessage();
+        lockMessage.setReceivers(receivers);
+        lockMessage.setSenderID(iam.getUserID());
+        lockMessage.setSenderName(iam.getUserName());
+        lockMessage.setLock(isLock);
+        client.sendTCP(lockMessage);
+        isLock = !isLock;
+        Log.i("ttt","Message send");
+    }
+
     private String[] getSelectedRecivers(){
         String[] recivers = null;
         List<String> selectedClients = new ArrayList<>();

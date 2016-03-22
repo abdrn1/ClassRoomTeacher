@@ -157,6 +157,8 @@ public class MainActivity extends AppCompatActivity
         kryo.register(TextMeesage.class);
         kryo.register(SimpleTextMessage.class);
         kryo.register(FileChunkMessageV2.class);
+        kryo.register(LockMessage.class);
+
     }
 
     public boolean openConnection() throws Exception {
