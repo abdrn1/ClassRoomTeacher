@@ -13,6 +13,7 @@ import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ListView;
@@ -109,6 +110,12 @@ public class ActiveUsersFragment extends Fragment {
         GeneralUtil.buttonEffect(sendfile);
         GeneralUtil.buttonEffect(btnsend);
         GeneralUtil.buttonEffect(btnStartExam);
+        listview.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                Toast.makeText(getActivity(),"hello : " +l1.get(position).getClientName(), Toast.LENGTH_SHORT).show();
+            }
+        });
 
         sendfile.setOnClickListener(new View.OnClickListener() {
             @Override

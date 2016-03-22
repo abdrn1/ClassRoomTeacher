@@ -16,6 +16,8 @@ import com.esotericsoftware.kryonet.Client;
 import com.esotericsoftware.kryonet.Connection;
 import com.esotericsoftware.kryonet.Listener;
 
+import org.w3c.dom.Text;
+
 
 /**
  * A simple {@link Fragment} subclass.
@@ -37,6 +39,9 @@ public class LoginFragment extends Fragment {
     private Button loginButton;
     private Client client;
     private boolean hideerrorMsg=false;
+    //////
+    private TextView wrongUserName;
+    private TextView noserverTview;
 
     private OnFragmentInteractionListener mListener;
 
@@ -95,11 +100,16 @@ public class LoginFragment extends Fragment {
             public void onClick(View v) {
                 EditText idText = (EditText) getActivity().findViewById(R.id.user_id_editext);
                 String userID = idText.getText().toString();
-               client.sendTCP(new UserLogin(userID,"TEACHER"));
+                if(client !=null && client.isConnected()) {
+                    client.sendTCP(new UserLogin(userID, "TEACHER"));
+                }
             }
         });
 
-        TextView t1 = (TextView) getActivity().findViewById(R.id.noservertextview);
+        TextView t1   =  (TextView) getActivity().findViewById(R.id.noservertextview);
+        wrongUserName =  (TextView)getActivity().findViewById(R.id.wrong_user_name);
+        noserverTview =  (TextView) getActivity().findViewById(R.id.noservertextview);
+
         if(hideerrorMsg) {
             t1.setVisibility(View.INVISIBLE);
         }
@@ -113,6 +123,14 @@ public class LoginFragment extends Fragment {
     }
     public void hideErrorMessage(){
         hideerrorMsg = true;
+        noserverTview.setVisibility(View.INVISIBLE);
+
+
+
+    }
+    public void showInvalidLoginMessage(){
+        wrongUserName.setVisibility(View.VISIBLE);
+        wrongUserName.setText("Wrong user Name and Password");
 
     }
 
@@ -143,6 +161,7 @@ public class LoginFragment extends Fragment {
         // TODO: Update argument type and name
         public void onFragmentInteraction(Uri uri);
         public void setSuccessfulLogin(UserLogin ul);
+        public void researchforServer();
     }
 
 }

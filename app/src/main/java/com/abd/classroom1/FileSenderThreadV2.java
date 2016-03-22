@@ -40,7 +40,6 @@ public class FileSenderThreadV2  extends Thread {
             Log.d("INFO", "RANDOM FILE Created");
             chunkcounter = 0;
             ByteArrayOutputStream bos = new ByteArrayOutputStream();
-            ;
             byte[] buf = new byte[bufferSize];
 
             Log.d("INFO", "For Start Here");

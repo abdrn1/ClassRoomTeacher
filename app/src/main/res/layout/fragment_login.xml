@@ -35,7 +35,7 @@
         android:layout_height="wrap_content"
         android:layout_below="@+id/view"
         android:layout_marginTop="5dp"
-       >
+        android:id="@+id/view2">
         <EditText
             android:layout_width="fill_parent"
             android:hint="@string/password"
@@ -62,9 +62,22 @@
         android:id="@+id/noservertextview"
         android:textColor="#d66a6a"
         android:textStyle="bold"
-        android:layout_below="@+id/view"
-        android:layout_centerHorizontal="true"
-        android:layout_marginTop="110dp" />
+        android:layout_marginTop="47dp"
+        android:layout_below="@+id/view2"
+        android:layout_centerHorizontal="true" />
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textAppearance="?android:attr/textAppearanceLarge"
+        android:id="@+id/wrong_user_name"
+        android:textColor="#d66a6a"
+        android:textStyle="bold"
+        android:layout_marginTop="10dp"
+        android:gravity="center"
+        android:background="@drawable/rounded_view"
+        android:layout_below="@+id/noservertextview"
+        android:layout_alignLeft="@+id/noservertextview"
+        android:layout_alignStart="@+id/noservertextview" />
 
 
 </RelativeLayout>
