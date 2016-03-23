@@ -14,6 +14,7 @@
         android:background="@null"
         android:divider="@null"
         android:stackFromBottom="false"
+        android:listSelector="@drawable/list_selector"
         android:transcriptMode="alwaysScroll"
          />
 
