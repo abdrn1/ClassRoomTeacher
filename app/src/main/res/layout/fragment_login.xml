@@ -46,12 +46,13 @@
 
 
     <Button
-        android:layout_width="wrap_content"
+        android:layout_width="100dp"
         android:layout_height="wrap_content"
         android:text="@string/login"
         android:id="@+id/login_button"
-        android:layout_marginTop="81dp"
-        android:layout_below="@+id/noservertextview"
+        android:layout_marginTop="42dp"
+        android:background="@drawable/rounded_login_buton"
+        android:layout_below="@+id/wrong_user_name"
         android:layout_centerHorizontal="true" />
 
     <TextView

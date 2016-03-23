@@ -65,17 +65,7 @@
             android:textColor="@color/white"
              />
 
-        <ImageButton
-            android:id="@+id/btnLock"
-            android:layout_width="42dp"
-            android:layout_height="fill_parent"
-            android:layout_gravity="right"
-            android:layout_marginLeft="5dp"
-            android:layout_marginStart="5dp"
-            android:background="@drawable/circle_shape"
-            android:src="@drawable/lock"
-            android:textColor="@color/white"
-            />
+
     </LinearLayout>
 
     <LinearLayout
@@ -104,6 +94,16 @@
 
             android:background="@drawable/circle_shape"
             android:src="@drawable/testicon" />
+        <ImageButton
+            android:id="@+id/btnLock"
+            android:layout_width="42dp"
+            android:layout_height="fill_parent"
+            android:layout_marginLeft="5dp"
+            android:layout_marginStart="5dp"
+            android:background="@drawable/circle_shape"
+            android:src="@drawable/lock"
+            android:textColor="@color/white"
+            />
 
     </LinearLayout>
 
