@@ -26,10 +26,12 @@ import com.esotericsoftware.kryonet.Listener;
 
 import java.io.IOException;
 import java.net.InetAddress;
+import java.util.ArrayList;
+import java.util.List;
 
 public class MainActivity extends AppCompatActivity
         implements NavigationView.OnNavigationItemSelectedListener,
-        LoginFragment.OnFragmentInteractionListener,Runnable {
+        LoginFragment.OnFragmentInteractionListener, Runnable {
 
     // begin note : should be save later in the bundle;
     Client client;
@@ -39,6 +41,7 @@ public class MainActivity extends AppCompatActivity
     LoginFragment loginfrag;
     ActiveUsersFragment activeusersfragment;
     private UserLogin iam;
+    private List<SimpleMessage> simpleMessagslist;
     private Thread checkServer;
 
 
@@ -52,6 +55,7 @@ public class MainActivity extends AppCompatActivity
         setContentView(R.layout.activity_main);
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
+        simpleMessagslist = new ArrayList<>();
 
        /* FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener() {
@@ -79,9 +83,8 @@ public class MainActivity extends AppCompatActivity
         ft.add(R.id.fragment_container, loginfrag, "LOGIN");
         ft.commit();
         prepareConnection();
-         checkServer = new Thread(this);
+        checkServer = new Thread(this);
         checkServer.start();
-
 
 
         //open the connection for the first TIME
@@ -148,7 +151,7 @@ public class MainActivity extends AppCompatActivity
     }
 
     /// ABd Add this code
-    private void prepareConnection(){
+    private void prepareConnection() {
         client = new Client(16384, 8192);
         kryo = client.getKryo();
         kryo.register(byte[].class);
@@ -169,6 +172,10 @@ public class MainActivity extends AppCompatActivity
 
         client.addListener(new Listener() {
             public void received(Connection c, Object ob) {
+                if (ob instanceof SimpleTextMessage) {
+                    Log.d("SIMPLE", "New Simple Message Recived");
+                    simpleMessagslist.add((SimpleTextMessage)ob);
+                }
                 if (ob instanceof UserLogin) {
                     if (!((UserLogin) ob).isLogin_Succesful()) {
                         showInvalidUserNameOrPassword();
@@ -202,7 +209,7 @@ public class MainActivity extends AppCompatActivity
                                 }
                             });
 
-                        }else{
+                        } else {
                             showInvalidUserNameOrPassword();
                         }
                     }
@@ -242,14 +249,14 @@ public class MainActivity extends AppCompatActivity
     @Override
     protected void onPause() {
         super.onPause();
-        Log.d("LIFE","Activity pause");
+        Log.d("LIFE", "Activity pause");
     }
 
     @Override
     public void run() {
-        boolean flag= true;
-        while(flag) {
-            Log.d("INFO","hello thread");
+        boolean flag = true;
+        while (flag) {
+            Log.d("INFO", "hello thread");
 
             try {
                 Thread.sleep(100);
@@ -267,8 +274,8 @@ public class MainActivity extends AppCompatActivity
                 }
 
             } catch (Exception e) {
-              //  Toast.makeText(MainActivity.this,
-                       // getResources().getText(R.string.unable_to_connect_server), Toast.LENGTH_LONG).show();
+                //  Toast.makeText(MainActivity.this,
+                // getResources().getText(R.string.unable_to_connect_server), Toast.LENGTH_LONG).show();
                 e.printStackTrace();
 
                 client = null;

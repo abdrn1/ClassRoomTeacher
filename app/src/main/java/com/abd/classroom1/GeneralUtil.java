@@ -29,4 +29,19 @@ public class GeneralUtil {
             }
         });
     }
+
+    public static boolean checkIfFileIsImage(String fileName) {
+
+        String ext = null;
+        int i = fileName.lastIndexOf('.');
+        if (i > 0 && i < (fileName.length() - 1)) {
+            ext = fileName.substring(i + 1).toLowerCase();
+        }
+        if (ext == null)
+            return false;
+        else if (!ext.equals("jpg") && !ext.equals("jpeg") && !ext.equals("png") && !ext.equals("gif"))
+            return false;
+        else
+            return true;
+    }
 }

@@ -12,9 +12,10 @@
         android:layout_column="0"
         android:layout_gravity="fill"
         android:layout_row="0"
+         android:layout_marginTop="10dp"
         android:layout_rowSpan="2"
-       android:layout_marginTop="10dp"
         android:scaleType="fitCenter"
+        android:clickable="false"
         android:src="@drawable/prof1"
         android:layout_alignParentTop="true"
         android:layout_alignParentLeft="true"
@@ -30,12 +31,11 @@
         android:paddingLeft="10dp"
         android:paddingRight="8dp"
         android:text="ABD Radwan"
-        android:textIsSelectable="true"
         android:textSize="18sp"
         android:textStyle="normal"
         android:layout_alignParentTop="true"
-        android:layout_toRightOf="@+id/clientImage"
-        android:layout_above="@+id/last_status" />
+        android:layout_toEndOf="@+id/clientImage"
+        android:layout_toRightOf="@+id/clientImage" />
 
     <CheckBox
         android:id="@+id/clientselected"
@@ -43,9 +43,12 @@
         android:layout_height="50dp"
         android:layout_gravity="center_vertical"
         android:paddingLeft="15dp"
+        android:visibility="visible"
+        android:focusable="true"
+        android:layout_marginTop="10dp"
+        android:focusableInTouchMode="false"
         android:layout_alignParentRight="true"
-        android:layout_alignParentEnd="true"
-        android:layout_alignTop="@+id/clientImage" />
+        android:layout_alignParentEnd="true" />
 
     <TextView
         android:id="@+id/last_status"
@@ -54,26 +57,28 @@
         android:layout_gravity="left"
         android:paddingTop="0dp"
         android:gravity="center"
-        android:paddingLeft="8dp"
-        android:paddingStart="12dp"
+        android:paddingLeft="5dp"
+        android:paddingStart="5dp"
         android:text="nothing to do"
-        android:textIsSelectable="true"
         android:textStyle="bold"
-        android:layout_alignBottom="@+id/clientselected"
+        android:layout_below="@+id/clientName"
+        android:layout_alignRight="@+id/clientName"
+        android:layout_alignEnd="@+id/clientName"
         android:layout_toRightOf="@+id/clientImage"
         android:layout_toEndOf="@+id/clientImage" />
 
     <TextView
-        android:id="@+id/textView3"
+        android:id="@+id/unread_mesage"
         android:layout_width="30dp"
         android:layout_height="30dp"
-        android:text="25"
+        android:text="100"
          android:gravity="center"
         android:textColor="@color/white"
-        android:textSize="14sp"
+        android:textSize="11sp"
         android:background="@drawable/bg_circle"
-        android:textIsSelectable="true"
+        android:textIsSelectable="false"
         android:textStyle="bold"
+        android:layout_marginTop="5dp"
         android:layout_below="@+id/message_time"
         android:layout_alignLeft="@+id/message_time"
         android:layout_alignStart="@+id/message_time"
@@ -90,8 +95,5 @@
         android:layout_alignParentTop="true"
         android:layout_alignParentRight="true"
         android:layout_alignParentEnd="true" />
-
-
-
 
 </RelativeLayout>

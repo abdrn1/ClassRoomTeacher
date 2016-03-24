@@ -9,13 +9,14 @@ import android.widget.CheckBox;
 import android.widget.CompoundButton;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import java.util.List;
 
 /**
  * Created by Abd on 3/5/2016.
  */
-public class ClientListAdapter extends ArrayAdapter {
+public class ClientListAdapter extends ArrayAdapter implements View.OnClickListener {
 
     private final List<ClientModel> list;
     private final Activity context;
@@ -24,6 +25,13 @@ public class ClientListAdapter extends ArrayAdapter {
         super(context, R.layout.clients_list, list);
         this.context = context;
         this.list = list;
+    }
+
+    @Override
+    public void onClick(View v) {
+        Toast.makeText(v.getContext(),
+                "Click View Message", Toast.LENGTH_LONG).show();
+
     }
 
     static class ViewHolder {
@@ -43,7 +51,8 @@ public class ClientListAdapter extends ArrayAdapter {
             viewHolder.lastStatus = (TextView) view.findViewById(R.id.last_status);
             viewHolder.img = (ImageView) view.findViewById(R.id.clientImage);
             viewHolder.checkbox = (CheckBox) view.findViewById(R.id.clientselected);
-            viewHolder.checkbox
+            viewHolder.userid.setOnClickListener(this);
+           viewHolder.checkbox
                     .setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
 
                         @Override
@@ -62,7 +71,7 @@ public class ClientListAdapter extends ArrayAdapter {
             ((ViewHolder) view.getTag()).checkbox.setTag(list.get(position));
         }
         ViewHolder holder = (ViewHolder) view.getTag();
-        holder.userid.setText(list.get(position).getClientName());
+       holder.userid.setText(list.get(position).getClientName());
         holder.lastStatus.setText(list.get(position).getLastStatus());
         holder.checkbox.setChecked(list.get(position).isClientSelected());
         holder.img.setImageResource(list.get(position).getClientImage());

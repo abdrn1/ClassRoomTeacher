@@ -70,15 +70,7 @@ public class FileSenderThreadV2  extends Thread {
                     sleep(10);
                 }
                 client.sendTCP(chunkFromFile);
-
-
-                //no doubt here is 0
-                    /*Writes len bytes from the specified byte array starting at offset
-                    off to this byte array output stream.*/
-
             }
-
-            // send end of file Packet
             FileChunkMessageV2 endofFile = new FileChunkMessageV2();
             endofFile.setSenderName(imMessage.getSenderName());
             Log.d("SEND", imMessage.getSenderName());
@@ -86,6 +78,7 @@ public class FileSenderThreadV2  extends Thread {
             Log.d("SEND", imMessage.getSenderID());
             endofFile.setChunkCounter((-1L));
             endofFile.setFileName(imMessage.getFileName());
+            endofFile.setFiletype(imMessage.getFiletype());
             Log.d("SEND", imMessage.getFileName());
             client.sendTCP(endofFile);
             aFile.close();

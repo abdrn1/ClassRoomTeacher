@@ -104,6 +104,7 @@ public class ActiveUsersFragment extends Fragment {
         l1.add(new ClientModel("4", "Mohammed", R.drawable.a2));
         l1.add(new ClientModel("5", "ZAKI", R.drawable.a3));
         listview.setAdapter(clientListAdapter);
+
         ImageButton sendfile = (ImageButton) getActivity().findViewById(R.id.btnsendfile);
         ImageButton btnsend = (ImageButton) getActivity().findViewById(R.id.btnSend);
         ImageButton btnStartExam = (ImageButton) getActivity().findViewById(R.id.btn_start_exam);
@@ -115,8 +116,10 @@ public class ActiveUsersFragment extends Fragment {
         GeneralUtil.buttonEffect(btnsend);
         GeneralUtil.buttonEffect(btnStartExam);
         listview.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                Log.d("Hello","Item Clicked");
                 Toast.makeText(getActivity(), "hello : " + l1.get(position).getClientName(), Toast.LENGTH_SHORT).show();
             }
         });
@@ -275,6 +278,7 @@ public class ActiveUsersFragment extends Fragment {
     }
 
     private String[] getSelectedRecivers(){
+        Log.d("INFO","Get selected recivers");
         String[] recivers = null;
         List<String> selectedClients = new ArrayList<>();
         for (ClientModel temp : l1) {

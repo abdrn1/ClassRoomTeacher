@@ -18,4 +18,8 @@
     <string name="password">PASSWORD</string>
     <string name="noseverfound">No Server Found, Restart Application</string>
     <string name="text_here">Text Here</string>
+    <string name="btn_send">SEND</string>
+    <string name="finish_exam">Finish Exam</string>
+
+
 </resources>

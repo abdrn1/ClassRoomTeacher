@@ -11,10 +11,10 @@
         android:layout_width="fill_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        android:background="@null"
-        android:divider="@null"
-        android:stackFromBottom="false"
+        android:drawSelectorOnTop="true"
         android:listSelector="@drawable/list_selector"
+
+        android:stackFromBottom="false"
         android:transcriptMode="alwaysScroll"
          />
 
