@@ -6,7 +6,7 @@
     android:orientation="horizontal">
 
     <ImageView
-        android:id="@+id/clientImage"
+        android:id="@+id/std_image"
         android:layout_width="50dp"
         android:layout_height="50dp"
         android:scaleType="fitCenter"
@@ -21,15 +21,16 @@
     <LinearLayout
         android:layout_width="wrap_content"
         android:orientation="vertical"
+        android:gravity="center_vertical"
         android:layout_height="wrap_content"
         android:layout_alignParentTop="true"
-        android:layout_toRightOf="@+id/clientImage"
-        android:layout_toEndOf="@+id/clientImage"
+        android:layout_toRightOf="@+id/std_image"
+        android:layout_toEndOf="@+id/std_image"
         android:layout_marginLeft="17dp"
         android:layout_marginStart="17dp">
 
         <TextView
-            android:id="@+id/clientName"
+            android:id="@+id/std_name"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="5dp"
@@ -40,22 +41,6 @@
             android:textSize="18sp"
             android:textStyle="normal" />
 
-        <TextView
-            android:id="@+id/last_status"
-            android:layout_width="wrap_content"
-            android:layout_height="29dp"
-            android:paddingTop="0dp"
-            android:gravity="center"
-            android:paddingLeft="10dp"
-            android:paddingStart="10dp"
-            android:text="stat"
-            android:textStyle="bold"
-            android:textColor="@color/colorPrimary"
-            android:layout_below="@+id/clientName"
-            android:layout_alignRight="@+id/clientName"
-            android:layout_alignEnd="@+id/clientName"
-            android:layout_toRightOf="@+id/clientImage"
-            android:layout_toEndOf="@+id/clientImage" />
 
     </LinearLayout>
 
@@ -70,14 +55,6 @@
         android:layout_alignParentRight="true"
         android:layout_alignParentEnd="true">
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="right"
-            android:layout_marginTop="5dp"
-            android:text="22-10-2016 11:48"
-            android:id="@+id/message_time" />
-
         <LinearLayout
             android:layout_width="wrap_content"
             android:layout_gravity="right"
@@ -85,29 +62,32 @@
             android:layout_height="wrap_content">
 
             <TextView
-                android:id="@+id/unread_mesage"
-                android:layout_width="30dp"
-                android:layout_height="30dp"
+                android:id="@+id/std_student_mark"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
                 android:text="100"
                 android:gravity="center"
+                android:layout_marginTop="10dp"
                 android:layout_marginRight="22dp"
                 android:textColor="@color/white"
-                android:textSize="11sp"
+                android:textSize="14sp"
                 android:background="@drawable/bg_circle"
                 android:textIsSelectable="false"
                 android:textStyle="bold" />
 
-            <CheckBox
-                android:id="@+id/clientselected"
-                android:layout_width="wrap_content"
-                android:layout_height="50dp"
-                android:visibility="visible"
-                android:focusable="true"
-                android:layout_marginStart="10dp"
-                android:layout_marginLeft="10dp"
-                android:focusableInTouchMode="false"
-                android:layout_alignParentRight="true"
-                android:layout_alignParentEnd="true" />
+            <TextView
+                android:id="@+id/std_exam_mark"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:text="100"
+                android:gravity="center"
+                android:layout_marginTop="10dp"
+                android:layout_marginRight="22dp"
+                android:textColor="@color/white"
+                android:textSize="14sp"
+                android:background="@drawable/bg_circle_green"
+                android:textIsSelectable="false"
+                android:textStyle="bold" />
 
         </LinearLayout>
 

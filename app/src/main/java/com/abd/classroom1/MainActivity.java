@@ -5,19 +5,15 @@ import android.app.FragmentTransaction;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.StrictMode;
-import android.support.design.widget.FloatingActionButton;
-import android.support.design.widget.Snackbar;
-import android.util.Log;
-import android.view.View;
 import android.support.design.widget.NavigationView;
 import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.widget.Toast;
 
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryonet.Client;
@@ -31,18 +27,31 @@ import java.util.List;
 
 public class MainActivity extends AppCompatActivity
         implements NavigationView.OnNavigationItemSelectedListener,
-        LoginFragment.OnFragmentInteractionListener, Runnable {
+        LoginFragment.OnFragmentInteractionListener, Runnable,
+        ActiveUsersFragment.OnFragmentInteractionListener,
+        MessageViewerFragment.OnFragmentInteractionListener,
+        ExamResultViewerFragment.OnFragmentInteractionListener,
+        ClientListAdapter.OnClientListAdapterInteraction {
 
     // begin note : should be save later in the bundle;
     Client client;
     Kryo kryo;
     FragmentManager fm;
     FragmentTransaction ft;
+    // the fragments
     LoginFragment loginfrag;
     ActiveUsersFragment activeusersfragment;
+    MessageViewerFragment messageViewerFragment;
+    ExamResultViewerFragment examResultViewerFragment;
+
+    ///
     private UserLogin iam;
-    private List<SimpleMessage> simpleMessagslist;
+    private List<ChatMessageModel> chatMessageModelList;
+    private List<ClientModel> clientsList;
+    private List<ExamResultModel> examResultModels;
     private Thread checkServer;
+    private int activeFragmentID = 1;
+    String[] clientStatus;
 
 
     ///// end note
@@ -55,7 +64,18 @@ public class MainActivity extends AppCompatActivity
         setContentView(R.layout.activity_main);
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
-        simpleMessagslist = new ArrayList<>();
+        ExamResultModel aa = new ExamResultModel();
+        aa.setClientID("105");
+        aa.setClientName("Radwan");
+        aa.setClientImage(R.drawable.u27);
+        aa.setStudentMark(25);
+        aa.setExamMark(50);
+
+        chatMessageModelList = new ArrayList<>(); // for saving conversation
+        examResultModels = new ArrayList<>(); // for saving exam result
+        examResultModels.add(aa);
+        clientsList = new ArrayList<>();// for saving active clients
+        clientStatus = getResources().getStringArray(R.array.client_status); // String Array of clients status
 
        /* FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener() {
@@ -97,6 +117,10 @@ public class MainActivity extends AppCompatActivity
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
         if (drawer.isDrawerOpen(GravityCompat.START)) {
             drawer.closeDrawer(GravityCompat.START);
+        }
+        if (getFragmentManager().getBackStackEntryCount() > 0) {
+            getFragmentManager().popBackStack();
+            Log.d("Info", "Acrive frag ID = :" + Integer.toString(activeFragmentID));
         } else {
             super.onBackPressed();
         }
@@ -131,18 +155,24 @@ public class MainActivity extends AppCompatActivity
         // Handle navigation view item clicks here.
         int id = item.getItemId();
 
-        if (id == R.id.nav_camara) {
+        if (id == R.id.mi_exam_result) {
+            Log.d("frag", "Curren Active = " + Integer.toString(activeFragmentID));
             // Handle the camera action
-        } else if (id == R.id.nav_gallery) {
+            if (activeFragmentID == 4) {
+                examResultViewerFragment.updateExamResultContent();
+            } else {
+                if (iam != null && ft != null) {
+                    examResultViewerFragment = ExamResultViewerFragment.newInstance(examResultModels);
+                    ft = fm.beginTransaction();
+                    ft.replace(R.id.fragment_container, examResultViewerFragment, "EXAMEXAM");
+                    examResultViewerFragment.setL1(examResultModels);
+                    activeusersfragment.setUserlogin(iam);
+                    ft.commit();
 
-        } else if (id == R.id.nav_slideshow) {
 
-        } else if (id == R.id.nav_manage) {
+                }
 
-        } else if (id == R.id.nav_share) {
-
-        } else if (id == R.id.nav_send) {
-
+            }
         }
 
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
@@ -161,22 +191,23 @@ public class MainActivity extends AppCompatActivity
         kryo.register(SimpleTextMessage.class);
         kryo.register(FileChunkMessageV2.class);
         kryo.register(LockMessage.class);
-
+        kryo.register(StatusMessage.class);
+        kryo.register(ExamResultMessage.class);
     }
 
     public boolean openConnection() throws Exception {
         client.start();
         InetAddress address = client.discoverHost(54777, 5000);
-        //   Log.d("INFO",address.toString());
         client.connect(5000, address, 9995, 54777);
+        client.setKeepAliveUDP(8000);
 
         client.addListener(new Listener() {
             public void received(Connection c, Object ob) {
                 if (ob instanceof SimpleTextMessage) {
                     Log.d("SIMPLE", "New Simple Message Recived");
-                    simpleMessagslist.add((SimpleTextMessage)ob);
-                }
-                if (ob instanceof UserLogin) {
+                    dealWithSimpleTextMessage((SimpleTextMessage) ob);
+
+                } else if (ob instanceof UserLogin) {
                     if (!((UserLogin) ob).isLogin_Succesful()) {
                         showInvalidUserNameOrPassword();
                         return;
@@ -192,27 +223,37 @@ public class MainActivity extends AppCompatActivity
                             activeusersfragment = new ActiveUsersFragment();
                             // }
                             ft.replace(R.id.fragment_container, activeusersfragment, "ACTIVE");
+                            clientsList.add(new ClientModel("25", "ABd", R.drawable.unknown));
+                            clientsList.add(new ClientModel("26", "Hassan", R.drawable.unknown));
+                            clientsList.add(new ClientModel("27", "Hassan", R.drawable.unknown));
+                            clientsList.add(new ClientModel("28", "Hassan", R.drawable.unknown));
                             activeusersfragment.setClient(client);
                             activeusersfragment.setUserlogin((UserLogin) ob);
+                            activeusersfragment.setActiveUsersList(clientsList);
+                            activeusersfragment.setChatMessageModelList(chatMessageModelList);
                             ft.commit();
                             Log.d("INFO", "Succesfull Log IN");
                         } else {
                             loginfrag.showInvalidLoginMessage();
                         }
                     } else if (((UserLogin) ob).getUserType().equals("STUDENT")) {
-                        if (activeusersfragment != null) {
-                            final Object ot = ob;
-                            runOnUiThread(new Runnable() {
-                                @Override
-                                public void run() {
-                                    activeusersfragment.addNewClient(((UserLogin) ot));
-                                }
-                            });
+                        addNewActiveClient((UserLogin) ob);
+
+                        if (activeFragmentID == 2) {
+
+                            activeusersfragment.setActiveUsersList(clientsList);
+
+                            activeusersfragment.updateActiveListContent();
 
                         } else {
                             showInvalidUserNameOrPassword();
                         }
                     }
+                } else if (ob instanceof StatusMessage) {
+                    dealWithStatusMessage((StatusMessage) ob);
+                } else if (ob instanceof ExamResultMessage) {
+                    Log.d("INFO", "Exam Result Message Recived");
+                    dealWithExamResultMessage((ExamResultMessage) ob);
                 }
             }
         });
@@ -220,6 +261,126 @@ public class MainActivity extends AppCompatActivity
         return true;
 
 
+    }
+
+    public void dealWithExamResultMessage(ExamResultMessage erm) {
+        ExamResultModel temp = new ExamResultModel();
+        temp.setClientID(erm.getSenderID());
+        temp.setClientName(erm.getSenderName());
+        int resourceID = getResourseId("u" + erm.getSenderID(), "drawable", getPackageName());
+        if (resourceID == -1) {
+            resourceID = R.drawable.unknown;
+        }
+        temp.setClientImage(resourceID);
+        temp.setExamMark(erm.getExamresult());
+        temp.setStudentMark(erm.getStudentresult());
+
+        // TODO: 26/03/16 we should update row if it is exist
+        examResultModels.add(temp);
+        if (activeFragmentID == 4) {
+            examResultViewerFragment.updateExamResultContent();
+        } else {
+            // Toast toast = Toast.makeText(this.getApplicationContext(), temp.getClientName() + " Finish The Exam", Toast.LENGTH_SHORT);
+            // toast.show();
+        }
+
+    }
+
+    public void dealWithSimpleTextMessage(SimpleTextMessage simplem) {
+        if (simplem.getMessageType().equals("TXT")) {
+            ChatMessageModel chm = new ChatMessageModel(simplem.getSenderName(), "", "TXT", simplem.getTextMessage(), false);
+            chm.setSenderID(simplem.getSenderID());
+            chatMessageModelList.add(chm);
+        }
+        if ((activeFragmentID == 3) && (messageViewerFragment != null)) {
+            Log.d("info", " Display on Message Viewer");
+
+            messageViewerFragment.setMessagesList(chatMessageModelList);
+            messageViewerFragment.updateMessageListContent();
+
+        }
+        if (activeFragmentID == 2) {
+            Log.d("info", "Display Message On Counter Only");
+            increasetUnreadMessageCounter(simplem.getSenderID());
+            if (activeusersfragment != null) {
+                activeusersfragment.updateActiveListContent();
+            }
+
+        }
+
+
+    }
+
+
+    private void dealWithStatusMessage(StatusMessage currSm) {
+        ClientModel cm = findCurrentUser(currSm.getUserID());
+        cm.setLastStatus(clientStatus[currSm.getStatus()]);
+        cm.setStatus(currSm.getStatus());
+        if (activeFragmentID == 2 && activeusersfragment != null) {
+            activeusersfragment.updateActiveListContent();
+        }
+
+    }
+
+    public void addNewActiveClient(UserLogin ul) {
+        int resourceID = getResourseId("u" + ul.getUserID(), "drawable", getPackageName());
+        if (resourceID == -1) {
+            resourceID = R.drawable.unknown;
+        }
+        ClientModel t = new ClientModel(ul.getUserID(), ul.getUserName(), resourceID);
+        t.setLastStatus(clientStatus[0]);
+        t.setStatus(0);
+        System.out.println();
+        if (!(ifUserExistUpdate(ul))) {
+            clientsList.add(t);
+        }
+    }
+
+    private boolean ifUserExistUpdate(UserLogin curr) {
+        for (ClientModel ul1 : clientsList) {
+            if (curr.getUserID().equals(ul1.getClientID())) {
+                ul1.setClientName(curr.getUserName());
+                int resourceID = getResourseId("u" + curr.getUserID(), "drawable", getPackageName());
+                if (resourceID == -1) {
+                    resourceID = R.drawable.unknown;
+                }
+                // TODO: 25/03/16 re edit this after solve profile image problem
+                ul1.setClientImage(resourceID);
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private boolean ifUserExistUpdate(String uID) {
+        for (ClientModel ul1 : clientsList) {
+            if (uID.equals(ul1.getClientID())) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private ClientModel findCurrentUser(String cuserID) {
+        for (ClientModel ul1 : clientsList) {
+            if (cuserID.equals(ul1.getClientID())) {
+                return ul1;
+            }
+        }
+
+        return null;
+    }
+
+    private void increasetUnreadMessageCounter(String userId) {
+        ClientModel temp = findCurrentUser(userId);
+        temp.unreadMsgCounter++;
+    }
+
+    private void resetUnreadMessageCounter(String userId) {
+        ClientModel temp = findCurrentUser(userId);
+        temp.unreadMsgCounter = 0;
     }
 
     @Override
@@ -249,7 +410,7 @@ public class MainActivity extends AppCompatActivity
     @Override
     protected void onPause() {
         super.onPause();
-        Log.d("LIFE", "Activity pause");
+        //  Log.d("LIFE", "Activity pause");
     }
 
     @Override
@@ -277,15 +438,62 @@ public class MainActivity extends AppCompatActivity
                 //  Toast.makeText(MainActivity.this,
                 // getResources().getText(R.string.unable_to_connect_server), Toast.LENGTH_LONG).show();
                 e.printStackTrace();
-
-                client = null;
-
-
             }
 
 
         }
 
+
     }
 
+    public int getResourseId(String pVariableName, String pResourcename, String pPackageName) {
+        try {
+            return getResources().getIdentifier(pVariableName, pResourcename, pPackageName);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return -1;
+        }
+    }
+
+
+    @Override
+    public void onFragmentInteraction(int fragmentID) {
+        this.activeFragmentID = fragmentID;
+
+    }
+
+    @Override
+    public void addNewChatModelMessage(ChatMessageModel cml) {
+
+    }
+
+
+    @Override
+    protected void onRestart() {
+        super.onRestart();
+        try {
+
+            SendUtil.reConnect(client, iam);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+
+    @Override
+    public void ShowMessagesViewer(String useriD) {
+        ft = fm.beginTransaction();
+        if (messageViewerFragment == null) {
+            messageViewerFragment = new MessageViewerFragment();
+        }
+        messageViewerFragment.setUserlogin(iam);
+        messageViewerFragment.setClient(client);
+        messageViewerFragment.setReciverID(useriD);
+        List temp = SendUtil.getClientUnreadMessages(useriD, chatMessageModelList);
+        examResultViewerFragment.setL1(temp);
+        ft.replace(R.id.fragment_container, messageViewerFragment, "VIEWMSG");
+        ft.addToBackStack(null);
+        ft.commit();
+
+    }
 }

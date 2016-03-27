@@ -4,13 +4,11 @@ import android.app.Activity;
 import android.app.Fragment;
 import android.content.Intent;
 import android.database.Cursor;
-import android.graphics.PorterDuff;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.MediaStore;
 import android.util.Log;
 import android.view.LayoutInflater;
-import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
@@ -43,6 +41,7 @@ public class ActiveUsersFragment extends Fragment {
     private static int EXAM_SELECT_CODE = 3;
     private ListView listview;
     private List<ClientModel> l1;
+    private List<ChatMessageModel> chatMessageModelList;
     private ClientListAdapter clientListAdapter;
     private Client client;
     private UserLogin iam;
@@ -93,16 +92,21 @@ public class ActiveUsersFragment extends Fragment {
         }
     }
 
+    public List<ChatMessageModel> getChatMessageModelList() {
+        return chatMessageModelList;
+    }
+
+    public void setChatMessageModelList(List<ChatMessageModel> chatMessageModelList) {
+        this.chatMessageModelList = chatMessageModelList;
+    }
+
     @Override
     public void onActivityCreated(Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
 
         listview = (ListView) getActivity().findViewById(R.id.clients_listview);
-        l1 = new ArrayList<>();
+        // l1 = new ArrayList<>();
         clientListAdapter = new ClientListAdapter(getActivity(), l1);
-        l1.add(new ClientModel("3", "Hassan", R.drawable.a1));
-        l1.add(new ClientModel("4", "Mohammed", R.drawable.a2));
-        l1.add(new ClientModel("5", "ZAKI", R.drawable.a3));
         listview.setAdapter(clientListAdapter);
 
         ImageButton sendfile = (ImageButton) getActivity().findViewById(R.id.btnsendfile);
@@ -120,7 +124,7 @@ public class ActiveUsersFragment extends Fragment {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 Log.d("Hello","Item Clicked");
-                Toast.makeText(getActivity(), "hello : " + l1.get(position).getClientName(), Toast.LENGTH_SHORT).show();
+                Toast.makeText(getActivity().getApplicationContext(), "hello : " + l1.get(position).getClientName(), Toast.LENGTH_SHORT).show();
             }
         });
 
@@ -139,12 +143,16 @@ public class ActiveUsersFragment extends Fragment {
         btnsend.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                String tempMsg = inputMsg.getText().toString();
-                //l1.add(new ClientModel("5", "ZAKI", R.drawable.a3));
-                //clientListAdapter.notifyDataSetChanged();
-                if (!(tempMsg.equals(""))) {
-                    sendTextMessage(tempMsg);
-                    inputMsg.setText("");
+                if (client.isConnected()) {
+                    String tempMsg = inputMsg.getText().toString();
+                    //l1.add(new ClientModel("5", "ZAKI", R.drawable.a3));
+                    //clientListAdapter.notifyDataSetChanged();
+                    if (!(tempMsg.equals(""))) {
+                        sendTextMessage(tempMsg);
+                        inputMsg.setText("");
+                    }
+                } else {
+                    Toast.makeText(getActivity().getApplicationContext(), "your disconnected", Toast.LENGTH_SHORT).show();
                 }
             }
         });
@@ -171,7 +179,9 @@ public class ActiveUsersFragment extends Fragment {
 
     }
 
-///
+    public void setActiveUsersList(List tlist) {
+        this.l1 = tlist;
+    }
 
 
     @Override
@@ -196,7 +206,6 @@ public class ActiveUsersFragment extends Fragment {
             FileChunkMessageV2 fblock = new FileChunkMessageV2();
             fblock.setSenderName(iam.getUserName());
             fblock.setSenderID(iam.getUserID());
-            //  client.sendTCP(fblock);
             try {
                 Log.d("INFO", "READ AND SEND FILE HERE");
                 SendUtil.readAndSendFile(path, client, iam, getSelectedRecivers(), FileChunkMessageV2.FILE);
@@ -262,6 +271,10 @@ public class ActiveUsersFragment extends Fragment {
         currTm.setTextMessage(txtmsg);
         currTm.setRecivers(recivers);
         client.sendTCP(currTm);
+        if (chatMessageModelList != null) {
+            // TODO: 27/03/16  this must saved in DB 
+            SendUtil.convertTextMessageToChatMessageModl(currTm, chatMessageModelList);
+        }
 
     }
 
@@ -274,11 +287,11 @@ public class ActiveUsersFragment extends Fragment {
         lockMessage.setLock(isLock);
         client.sendTCP(lockMessage);
         isLock = !isLock;
-        Log.i("ttt","Message send");
+        Log.i("Lock", "Lock Message send");
     }
 
     private String[] getSelectedRecivers(){
-        Log.d("INFO","Get selected recivers");
+        Log.d("INFO", "Get selected recivers");
         String[] recivers = null;
         List<String> selectedClients = new ArrayList<>();
         for (ClientModel temp : l1) {
@@ -295,33 +308,29 @@ public class ActiveUsersFragment extends Fragment {
 
     }
 
-    public void addNewClient(UserLogin ul) {
-        ClientModel t = new ClientModel(ul.getUserID(), ul.getUserName(),R.drawable.a5);
-        System.out.println();
-        l1.add(t);
-        clientListAdapter.notifyDataSetChanged();
-    }
 
-    public void buttonEffect(View button) {
-        button.setOnTouchListener(new View.OnTouchListener() {
-
-            public boolean onTouch(View v, MotionEvent event) {
-                switch (event.getAction()) {
-                    case MotionEvent.ACTION_DOWN: {
-                        v.getBackground().setColorFilter(getResources().getColor(R.color.test), PorterDuff.Mode.SRC_ATOP);
-                        v.invalidate();
-                        break;
-                    }
-                    case MotionEvent.ACTION_UP: {
-                        v.getBackground().clearColorFilter();
-                        v.invalidate();
-                        break;
-                    }
-                }
-                return false;
+    public void updateActiveListContent() {
+        getActivity().runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                clientListAdapter.notifyDataSetChanged();
             }
         });
+
     }
+
+    private boolean isUserExistUpdate(UserLogin curr) {
+        for (ClientModel ul1 : l1) {
+            if (curr.getUserID().equals(ul1.getClientID())) {
+                ul1.setClientName(curr.getUserName());
+                ul1.setClientImage(curr.getUserIMage());
+                return true;
+            }
+        }
+
+        return false;
+    }
+
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
@@ -333,13 +342,15 @@ public class ActiveUsersFragment extends Fragment {
     // TODO: Rename method, update argument and hook method into UI event
     public void onButtonPressed(Uri uri) {
         if (mListener != null) {
-            mListener.onFragmentInteraction(uri);
+            //  mListener.onFragmentInteraction(uri);
         }
     }
 
     @Override
     public void onAttach(Activity activity) {
         super.onAttach(activity);
+        mListener = (OnFragmentInteractionListener) activity;
+        mListener.onFragmentInteraction(2);
         /*try {
          //   mListener = (OnFragmentInteractionListener) activity;
         } catch (ClassCastException e) {
@@ -350,6 +361,7 @@ public class ActiveUsersFragment extends Fragment {
 
     @Override
     public void onDetach() {
+        mListener.onFragmentInteraction(-2);
         super.onDetach();
         mListener = null;
     }
@@ -366,7 +378,9 @@ public class ActiveUsersFragment extends Fragment {
      */
     public interface OnFragmentInteractionListener {
         // TODO: Update argument type and name
-        public void onFragmentInteraction(Uri uri);
+        public void onFragmentInteraction(int fragmentID);
+
+        public void addNewChatModelMessage(ChatMessageModel cml);
     }
 
 }

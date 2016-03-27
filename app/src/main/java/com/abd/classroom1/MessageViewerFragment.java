@@ -15,7 +15,6 @@ import android.widget.ListView;
 
 import com.esotericsoftware.kryonet.Client;
 
-import java.util.ArrayList;
 import java.util.List;
 
 
@@ -32,6 +31,7 @@ public class MessageViewerFragment extends Fragment {
     // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
     private static final String ARG_PARAM1 = "param1";
     private static final String ARG_PARAM2 = "param2";
+    private static final int FRAG_ID = 3;
 
     // TODO: Rename and change types of parameters
     private String mParam1;
@@ -72,10 +72,12 @@ public class MessageViewerFragment extends Fragment {
     public void onActivityCreated(Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
         listview = (ListView) getActivity().findViewById(R.id.list_view_messages);
-        l1 = new ArrayList();
-        mLAdapter = new MessagesListAdapter(getActivity(), l1);
+       /* l1 = new ArrayList();
+
         l1.add(new ChatMessageModel("ABD", "Hassan", "SIMPLE", "Hello There How?", true));
-        l1.add(new ChatMessageModel("Hassan", "Hassan", "SIMPLE", "Nice OK .....", false));
+        l1.add(new ChatMessageModel("Hassan", "Hassan", "SIMPLE", "Nice OK .....", false));*/
+
+        mLAdapter = new MessagesListAdapter(getActivity(), l1);
         listview.setAdapter(mLAdapter);
         final EditText inputMsg = (EditText)getActivity().findViewById(R.id.inputMsg);
         Button btnsend = (Button) getActivity().findViewById(R.id.btnSend);
@@ -92,6 +94,10 @@ public class MessageViewerFragment extends Fragment {
             }
         });
 
+    }
+
+    public void setMessagesList(List<ChatMessageModel> ll) {
+        this.l1 = ll;
     }
 
     private void sendTextMessage(String txtmsg) {
@@ -125,6 +131,15 @@ public class MessageViewerFragment extends Fragment {
             mParam1 = getArguments().getString(ARG_PARAM1);
             mParam2 = getArguments().getString(ARG_PARAM2);
         }
+    }
+
+    public void updateMessageListContent() {
+        getActivity().runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                mLAdapter.notifyDataSetChanged();
+            }
+        });
     }
 
     protected void addNewMessage(SimpleTextMessage simplem,boolean fromMe ) {
@@ -164,23 +179,22 @@ public class MessageViewerFragment extends Fragment {
     // TODO: Rename method, update argument and hook method into UI event
     public void onButtonPressed(Uri uri) {
         if (mListener != null) {
-            mListener.onFragmentInteraction(uri);
+            // mListener.onFragmentInteraction(uri);
         }
     }
+
 
     @Override
     public void onAttach(Activity activity) {
         super.onAttach(activity);
-      /*  try {
-            mListener = (OnFragmentInteractionListener) activity;
-        } catch (ClassCastException e) {
-            throw new ClassCastException(activity.toString()
-                    + " must implement OnFragmentInteractionListener");
-        }*/
+        mListener = (OnFragmentInteractionListener) activity;
+        mListener.onFragmentInteraction(3);
+
     }
 
     @Override
     public void onDetach() {
+        mListener.onFragmentInteraction(-3);
         super.onDetach();
         mListener = null;
     }
@@ -197,7 +211,8 @@ public class MessageViewerFragment extends Fragment {
      */
     public interface OnFragmentInteractionListener {
         // TODO: Update argument type and name
-        public void onFragmentInteraction(Uri uri);
+        // public void onFragmentInteraction(Uri uri);
+        public void onFragmentInteraction(int fragmentID);
     }
 
 }

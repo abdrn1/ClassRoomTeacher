@@ -67,7 +67,7 @@ public class FileSenderThreadV2  extends Thread {
 
                 // if the send buffer full wait untill some free buffer be available.
                 while(client.getTcpWriteBufferSize()>8000){
-                    sleep(10);
+                    sleep(50);
                 }
                 client.sendTCP(chunkFromFile);
             }
@@ -91,7 +91,7 @@ public class FileSenderThreadV2  extends Thread {
             e.printStackTrace();
 
         }
-        Log.d("INFO", "Helllllloooooo");
+        Log.d("INFO", "All Done");
 
     }
 }

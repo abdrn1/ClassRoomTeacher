@@ -6,7 +6,7 @@
 
     <string name="action_settings">Settings</string>
 
-<!-- TODO: Remove or change this placeholder text -->
+    <!-- TODO: Remove or change this placeholder text -->
     <string name="hello_blank_fragment">Hello blank fragment</string>
     <string name="Inser_id">Please Insert Your ID</string>
     <string name="login">Log  In</string>
@@ -20,6 +20,12 @@
     <string name="text_here">Text Here</string>
     <string name="btn_send">SEND</string>
     <string name="finish_exam">Finish Exam</string>
+    <string name="show_exam_result">Exam Results</string>
+
+    <string-array name="client_status">
+        <item>On Line</item>
+        <item>Offline</item>
+    </string-array>
 
 
 </resources>

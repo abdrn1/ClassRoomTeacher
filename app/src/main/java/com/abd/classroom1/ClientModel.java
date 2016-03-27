@@ -6,9 +6,19 @@ package com.abd.classroom1;
 public class ClientModel {
     private String clientName;
     private String ClientID;
-    private String lastStatus;
-    private boolean clientSelected;
+    private String lastStatus = "On Line";
+    private boolean clientSelected = false;
     private Integer clientImage;
+    private int status = 0;
+    int unreadMsgCounter = 0;
+
+    public int getStatus() {
+        return status;
+    }
+
+    public void setStatus(int status) {
+        this.status = status;
+    }
 
     public String getLastStatus() {
         return lastStatus;

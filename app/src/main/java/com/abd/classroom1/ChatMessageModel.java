@@ -11,6 +11,7 @@ public class ChatMessageModel {
     String recivers;
     String messageType;
     String simpleMessage;
+    String senderID;
     Bitmap image;
     boolean isSelf;
 
@@ -18,6 +19,14 @@ public class ChatMessageModel {
 
     public ChatMessageModel(){
 
+    }
+
+    public String getSenderID() {
+        return senderID;
+    }
+
+    public void setSenderID(String senderID) {
+        this.senderID = senderID;
     }
 
     public ChatMessageModel(String senderName, String recivers, String messageType, String simpleMessage, boolean isSelf) {
