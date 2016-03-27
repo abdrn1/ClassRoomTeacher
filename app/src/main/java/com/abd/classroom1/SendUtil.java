@@ -1,5 +1,8 @@
 package com.abd.classroom1;
 
+import android.app.Activity;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.util.Log;
 
 import com.esotericsoftware.kryonet.Client;
@@ -15,7 +18,8 @@ import java.util.List;
  */
 public class SendUtil {
 
-    public static void readAndSendFile(String path, Client client, UserLogin currentUser, String[] recivers, String fileType) throws IOException {
+
+    public static void readAndSendFile(Activity activity, String path, Client client, UserLogin currentUser, String[] recivers, String fileType) throws IOException {
         //File f = new File(path) ;
 
 
@@ -32,6 +36,36 @@ public class SendUtil {
         Log.d("INFO", "Start Thread");
     }
 
+    public static void convertFileChunkToChatMessageModl(Activity activity, String filePath, FileChunkMessageV2 tm, List<ChatMessageModel> cmlLsit) {
+        String[] recivers = tm.getRecivers();
+        if (recivers != null) {
+            for (String rec : recivers) {
+                ChatMessageModel temp = new ChatMessageModel();
+                temp.setSenderID(rec);
+                temp.setSenderName(tm.getSenderName());
+
+                if (checkIfFileIsImage(tm.getFileName())) {
+                    //Image FIle
+                    // Bitmap bm = ScalingUtilities.fitImageDecoder(tempImagePath,mDstWidth,mDstHeight);
+                    Bitmap bm = ScalDownImage.decodeSampledBitmapFromResource(filePath, 150, 150);
+                    temp.setImage(bm);
+                    temp.setMessageType("IMG");
+                    temp.setSimpleMessage(tm.getFileName());
+
+                } else {
+                    Bitmap bm = BitmapFactory.decodeResource(activity.getResources(), R.drawable.filecompleteicon);
+                    temp.setImage(bm);
+                    temp.setSimpleMessage(tm.getFileName());
+                    temp.setMessageType("FILE");
+                    // ANY FILE
+                }
+
+
+                cmlLsit.add(temp);
+
+            }
+        }
+    }
 
     public static void reConnect(Client cl, UserLogin iam) throws IOException {
 
@@ -65,22 +99,7 @@ public class SendUtil {
         }
     }
 
-    public static void convertFileChunkToChatMessageModl(FileChunkMessageV2 tm, List<ChatMessageModel> cmlLsit) {
-        String[] recivers = tm.getRecivers();
-        if (recivers != null) {
-          /*  for(String rec :recivers){
-                ChatMessageModel temp = new ChatMessageModel();
-                temp.setSenderID(rec);
-                temp.setSenderName(tm.getSenderName());
-                temp.setSimpleMessage(tm.getTextMessage());
-                temp.setMessageType(tm.getFiletype());
-                // TODO: 27/03/16 image and file message
 
-                cmlLsit.add(temp);
-
-            }*/
-        }
-    }
 
     public static boolean checkIfFileIsImage(String fileName) {
 

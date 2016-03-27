@@ -208,7 +208,7 @@ public class ActiveUsersFragment extends Fragment {
             fblock.setSenderID(iam.getUserID());
             try {
                 Log.d("INFO", "READ AND SEND FILE HERE");
-                SendUtil.readAndSendFile(path, client, iam, getSelectedRecivers(), FileChunkMessageV2.FILE);
+                SendUtil.readAndSendFile(getActivity(), path, client, iam, getSelectedRecivers(), FileChunkMessageV2.FILE);
 
             } catch (IOException e) {
                 Toast.makeText(getActivity(),
@@ -234,7 +234,7 @@ public class ActiveUsersFragment extends Fragment {
             //  client.sendTCP(fblock);
             try {
                 Log.d("INFO", "READ AND SEND EXAM HERE");
-                SendUtil.readAndSendFile(path, client, iam, getSelectedRecivers(), FileChunkMessageV2.EXAM);
+                SendUtil.readAndSendFile(getActivity(), path, client, iam, getSelectedRecivers(), FileChunkMessageV2.EXAM);
 
             } catch (IOException e) {
                 Toast.makeText(getActivity(),
