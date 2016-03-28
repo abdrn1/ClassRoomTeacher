@@ -249,9 +249,14 @@ public class MainActivity extends AppCompatActivity
                             ft.replace(R.id.fragment_container, activeusersfragment, "ACTIVE");
 
                             // for Test Only
-                            /*clientsList.add(new ClientModel("25", "ABd", R.drawable.unknown));
-                            clientsList.add(new ClientModel("26", "Hassan", R.drawable.unknown));
-                            clientsList.add(new ClientModel("27", "Hassan", R.drawable.unknown));
+                            ClientModel tempcl = new ClientModel("29", "محمود هاشم", R.drawable.u29);
+                            tempcl.setLastStatus("متوفر");
+
+                            clientsList.add(tempcl);
+                            tempcl = new ClientModel("32", "محمود هاشم", R.drawable.u30);
+                            tempcl.setLastStatus("متوفر");
+                            clientsList.add(tempcl);
+                           /* clientsList.add(new ClientModel("27", "Hassan", R.drawable.unknown));
                             clientsList.add(new ClientModel("28", "Hassan", R.drawable.unknown));*/
                             activeusersfragment.setClient(client);
                             activeusersfragment.setUserlogin((UserLogin) ob);
