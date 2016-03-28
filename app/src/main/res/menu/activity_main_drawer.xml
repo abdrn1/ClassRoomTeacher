@@ -5,7 +5,7 @@
         <item
             android:id="@+id/nmi_active_users"
             android:icon="@android:drawable/ic_menu_share"
-            android:title="Import" />
+            android:title="@string/active_users" />
         <item
             android:id="@+id/mi_exam_result"
             android:icon="@android:drawable/ic_menu_gallery"

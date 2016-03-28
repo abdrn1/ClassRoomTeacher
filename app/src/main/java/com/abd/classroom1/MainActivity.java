@@ -187,6 +187,7 @@ public class MainActivity extends AppCompatActivity
                     activeusersfragment = new ActiveUsersFragment();
                     ft = fm.beginTransaction();
                     ft.replace(R.id.fragment_container, activeusersfragment, "EXAMEXAM");
+                    activeusersfragment.setClient(client);
                     activeusersfragment.setActiveUsersList(clientsList);
                     activeusersfragment.setUserlogin(iam);
                     activeFragmentID = 2;

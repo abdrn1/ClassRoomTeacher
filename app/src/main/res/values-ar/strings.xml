@@ -21,7 +21,7 @@
     <string name="btn_send">إرسال</string>
     <string name="finish_exam">انهاء الاختبار</string>
     <string name="show_exam_result">اظهار نتيجة الاختبار</string>
-    <string name="active_users">التلاميذ</string>
+    <string name="active_users">الطلاب</string>
 
     <string-array name="client_status">
         <item>متوفر</item>
