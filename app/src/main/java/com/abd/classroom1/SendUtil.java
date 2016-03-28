@@ -18,6 +18,8 @@ import java.util.List;
  */
 public class SendUtil {
 
+    public static AddRemoveSync synAddOrRemove;
+
 
     public static void readAndSendFile(Activity activity, String path, Client client, UserLogin currentUser, String[] recivers, String fileType) throws IOException {
         //File f = new File(path) ;
@@ -91,6 +93,7 @@ public class SendUtil {
                 temp.setSenderName(tm.getSenderName());
                 temp.setSimpleMessage(tm.getTextMessage());
                 temp.setMessageType(tm.getMessageType());
+                temp.setIsSelf(true);
                 // TODO: 27/03/16 image and file message
 
                 cmlLsit.add(temp);

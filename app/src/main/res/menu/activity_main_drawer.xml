@@ -2,7 +2,9 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
 
     <group android:checkableBehavior="single">
-        <item android:id="@+id/nav_camara" android:icon="@android:drawable/ic_menu_camera"
+        <item
+            android:id="@+id/nmi_active_users"
+            android:icon="@android:drawable/ic_menu_share"
             android:title="Import" />
         <item
             android:id="@+id/mi_exam_result"

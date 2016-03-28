@@ -23,6 +23,7 @@ import com.esotericsoftware.kryonet.Listener;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity
@@ -31,7 +32,8 @@ public class MainActivity extends AppCompatActivity
         ActiveUsersFragment.OnFragmentInteractionListener,
         MessageViewerFragment.OnFragmentInteractionListener,
         ExamResultViewerFragment.OnFragmentInteractionListener,
-        ClientListAdapter.OnClientListAdapterInteraction {
+        ClientListAdapter.OnClientListAdapterInteraction,
+        AddRemoveSync {
 
     // begin note : should be save later in the bundle;
     Client client;
@@ -70,8 +72,9 @@ public class MainActivity extends AppCompatActivity
         aa.setClientImage(R.drawable.u27);
         aa.setStudentMark(25);
         aa.setExamMark(50);
+        chatMessageModelList = Collections.synchronizedList(new ArrayList<ChatMessageModel>());
 
-        chatMessageModelList = new ArrayList<>(); // for saving conversation
+        // for saving conversation
         examResultModels = new ArrayList<>(); // for saving exam result
         examResultModels.add(aa);
         clientsList = new ArrayList<>();// for saving active clients
@@ -166,13 +169,33 @@ public class MainActivity extends AppCompatActivity
                     ft = fm.beginTransaction();
                     ft.replace(R.id.fragment_container, examResultViewerFragment, "EXAMEXAM");
                     examResultViewerFragment.setL1(examResultModels);
-                    activeusersfragment.setUserlogin(iam);
+                    activeFragmentID = 4;
+                    ft.addToBackStack(null);
+                    //examResultViewerFragment.set(iam);
                     ft.commit();
 
 
                 }
 
             }
+        } else if (id == R.id.nmi_active_users) {
+
+            if (activeFragmentID == 2) {
+                activeusersfragment.updateActiveListContent();
+            } else {
+                if (iam != null && ft != null) {
+                    activeusersfragment = new ActiveUsersFragment();
+                    ft = fm.beginTransaction();
+                    ft.replace(R.id.fragment_container, activeusersfragment, "EXAMEXAM");
+                    activeusersfragment.setActiveUsersList(clientsList);
+                    activeusersfragment.setUserlogin(iam);
+                    activeFragmentID = 2;
+                    ft.commit();
+
+
+                }
+            }
+
         }
 
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
@@ -223,10 +246,12 @@ public class MainActivity extends AppCompatActivity
                             activeusersfragment = new ActiveUsersFragment();
                             // }
                             ft.replace(R.id.fragment_container, activeusersfragment, "ACTIVE");
-                            clientsList.add(new ClientModel("25", "ABd", R.drawable.unknown));
+
+                            // for Test Only
+                            /*clientsList.add(new ClientModel("25", "ABd", R.drawable.unknown));
                             clientsList.add(new ClientModel("26", "Hassan", R.drawable.unknown));
                             clientsList.add(new ClientModel("27", "Hassan", R.drawable.unknown));
-                            clientsList.add(new ClientModel("28", "Hassan", R.drawable.unknown));
+                            clientsList.add(new ClientModel("28", "Hassan", R.drawable.unknown));*/
                             activeusersfragment.setClient(client);
                             activeusersfragment.setUserlogin((UserLogin) ob);
                             activeusersfragment.setActiveUsersList(clientsList);
@@ -489,11 +514,18 @@ public class MainActivity extends AppCompatActivity
         messageViewerFragment.setUserlogin(iam);
         messageViewerFragment.setClient(client);
         messageViewerFragment.setReciverID(useriD);
-        List temp = SendUtil.getClientUnreadMessages(useriD, chatMessageModelList);
-        examResultViewerFragment.setL1(temp);
+        List<ChatMessageModel> temp = SendUtil.getClientUnreadMessages(useriD, chatMessageModelList);
+        messageViewerFragment.setMessagesList(temp);
         ft.replace(R.id.fragment_container, messageViewerFragment, "VIEWMSG");
+        activeFragmentID = 3;
         ft.addToBackStack(null);
         ft.commit();
+
+    }
+
+    @Override
+    public synchronized void AddNewChatModel(ChatMessageModel newCml) {
+        chatMessageModelList.add(newCml);
 
     }
 }
