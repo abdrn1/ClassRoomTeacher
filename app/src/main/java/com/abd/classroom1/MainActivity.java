@@ -31,7 +31,7 @@ public class MainActivity extends AppCompatActivity
         LoginFragment.OnFragmentInteractionListener, Runnable,
         ActiveUsersFragment.OnFragmentInteractionListener,
         MessageViewerFragment.OnFragmentInteractionListener,
-        ExamResultViewerFragment.OnFragmentInteractionListener,
+        ExamResultViewerFragment.OnFragmentInteractionListener, MonitorFragment.OnFragmentInteractionListener,
         ClientListAdapter.OnClientListAdapterInteraction,
         AddRemoveSync {
 
@@ -45,6 +45,7 @@ public class MainActivity extends AppCompatActivity
     ActiveUsersFragment activeusersfragment;
     MessageViewerFragment messageViewerFragment;
     ExamResultViewerFragment examResultViewerFragment;
+    MonitorFragment monitorFragment;
 
     ///
     private UserLogin iam;
@@ -206,7 +207,7 @@ public class MainActivity extends AppCompatActivity
 
     /// ABd Add this code
     private void prepareConnection() {
-        client = new Client(16384, 8192);
+        client = new Client(1024*1024, 1024*1024);
         kryo = client.getKryo();
         kryo.register(byte[].class);
         kryo.register(String[].class);
@@ -217,6 +218,10 @@ public class MainActivity extends AppCompatActivity
         kryo.register(LockMessage.class);
         kryo.register(StatusMessage.class);
         kryo.register(ExamResultMessage.class);
+        kryo.register(MonitorRequestMessage.class);
+        kryo.register(ScreenshotMessage.class);
+        kryo.register(BoardScreenshotMessage.class);
+
     }
 
     public boolean openConnection() throws Exception {
@@ -285,6 +290,9 @@ public class MainActivity extends AppCompatActivity
                 } else if (ob instanceof ExamResultMessage) {
                     Log.d("INFO", "Exam Result Message Recived");
                     dealWithExamResultMessage((ExamResultMessage) ob);
+                }else if(ob instanceof ScreenshotMessage){
+                    if(monitorFragment != null)
+                        monitorFragment.screenshotReceived((ScreenshotMessage) ob);
                 }
             }
         });
@@ -293,6 +301,8 @@ public class MainActivity extends AppCompatActivity
 
 
     }
+
+
 
     public void dealWithExamResultMessage(ExamResultMessage erm) {
         ExamResultModel temp = new ExamResultModel();
@@ -498,6 +508,11 @@ public class MainActivity extends AppCompatActivity
 
     }
 
+    @Override
+    public void showMonitor(String[] receivers) {
+        ShowMonitorViewer(receivers);
+    }
+
 
     @Override
     protected void onRestart() {
@@ -511,7 +526,22 @@ public class MainActivity extends AppCompatActivity
     }
 
 
-    @Override
+    public void ShowMonitorViewer(String[] receivers) {
+        ft = fm.beginTransaction();
+        if (monitorFragment == null) {
+            monitorFragment = new MonitorFragment();
+        }
+        //monitorFragment
+        monitorFragment.setUserLogin(iam);
+        monitorFragment.setReceivers(receivers);
+        monitorFragment.setClient(client);
+        ft.replace(R.id.fragment_container, monitorFragment, "MONITOR");
+        activeFragmentID = 4;
+        ft.addToBackStack(null);
+        ft.commit();
+
+    }
+
     public void ShowMessagesViewer(String useriD) {
         ft = fm.beginTransaction();
         if (messageViewerFragment == null) {

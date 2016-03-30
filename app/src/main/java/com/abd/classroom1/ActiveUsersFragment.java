@@ -39,6 +39,8 @@ public class ActiveUsersFragment extends Fragment {
     private static final String ARG_PARAM2 = "param2";
     private static int FILE_SELECT_CODE = 2;
     private static int EXAM_SELECT_CODE = 3;
+    private static int MONITOR_CODE = 4;
+
     private ListView listview;
     private List<ClientModel> l1;
     private List<ChatMessageModel> chatMessageModelList;
@@ -113,6 +115,8 @@ public class ActiveUsersFragment extends Fragment {
         ImageButton btnsend = (ImageButton) getActivity().findViewById(R.id.btnSend);
         ImageButton btnStartExam = (ImageButton) getActivity().findViewById(R.id.btn_start_exam);
         ImageButton locksend = (ImageButton) getActivity().findViewById(R.id.btnLock);
+        ImageButton monitorBtn = (ImageButton) getActivity().findViewById(R.id.btnMonitor);
+
 
         final EditText inputMsg = (EditText) getActivity().findViewById(R.id.inputMsg);
         // Give Button Animation effect On press Button
@@ -177,6 +181,12 @@ public class ActiveUsersFragment extends Fragment {
             }
         });
 
+        monitorBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                mListener.showMonitor(getSelectedRecivers());
+            }
+        });
     }
 
     public void setActiveUsersList(List tlist) {
@@ -243,6 +253,8 @@ public class ActiveUsersFragment extends Fragment {
 
 
             }
+
+        }else if(resultCode == MONITOR_CODE && resultCode == Activity.RESULT_OK){
 
         }
 
@@ -381,6 +393,7 @@ public class ActiveUsersFragment extends Fragment {
         public void onFragmentInteraction(int fragmentID);
 
         public void addNewChatModelMessage(ChatMessageModel cml);
+        public void showMonitor(String[] receivers);
     }
 
 }

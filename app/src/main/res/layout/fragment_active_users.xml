@@ -105,6 +105,17 @@
             android:textColor="@color/white"
             />
 
+        <ImageButton
+            android:id="@+id/btnMonitor"
+            android:layout_width="42dp"
+            android:layout_height="fill_parent"
+            android:layout_marginLeft="5dp"
+            android:layout_marginStart="5dp"
+            android:background="@drawable/circle_shape"
+            android:src="@drawable/monitor"
+            android:textColor="@color/white"
+            />
+
     </LinearLayout>
 
 </LinearLayout>
