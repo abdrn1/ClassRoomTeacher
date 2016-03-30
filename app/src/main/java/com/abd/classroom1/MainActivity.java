@@ -207,7 +207,7 @@ public class MainActivity extends AppCompatActivity
 
     /// ABd Add this code
     private void prepareConnection() {
-        client = new Client(1024*1024, 1024*1024);
+        client = new Client((1024*1024), (1024*1024)/10);
         kryo = client.getKryo();
         kryo.register(byte[].class);
         kryo.register(String[].class);
