@@ -4,8 +4,10 @@ import android.app.Activity;
 import android.app.Fragment;
 import android.content.Intent;
 import android.database.Cursor;
+import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Environment;
 import android.provider.MediaStore;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -19,9 +21,18 @@ import android.widget.Toast;
 
 import com.esotericsoftware.kryonet.Client;
 
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
+import java.util.Hashtable;
 import java.util.List;
+
+import Decoder.BASE64Encoder;
 
 
 /**
@@ -40,20 +51,20 @@ public class ActiveUsersFragment extends Fragment {
     private static int FILE_SELECT_CODE = 2;
     private static int EXAM_SELECT_CODE = 3;
     private static int MONITOR_CODE = 4;
-
+    private static int REQUEST_TAKE_PHOTO = 5;
+    boolean isLock = true;
     private ListView listview;
     private List<ClientModel> l1;
     private List<ChatMessageModel> chatMessageModelList;
     private ClientListAdapter clientListAdapter;
     private Client client;
     private UserLogin iam;
+    private Hashtable<String, List<ChatMessageModel>> allStudentsLists;
     // TODO: Rename and change types of parameters
     private String mParam1;
     private String mParam2;
-
+    private String mCurrentPhotoPath;
     private OnFragmentInteractionListener mListener;
-
-    boolean isLock = true;
 
     public ActiveUsersFragment() {
         // Required empty public constructor
@@ -75,6 +86,14 @@ public class ActiveUsersFragment extends Fragment {
         args.putString(ARG_PARAM2, param2);
         fragment.setArguments(args);
         return fragment;
+    }
+
+    public Hashtable<String, List<ChatMessageModel>> getAllStudentsLists() {
+        return allStudentsLists;
+    }
+
+    public void setAllStudentsLists(Hashtable<String, List<ChatMessageModel>> allStudentsLists) {
+        this.allStudentsLists = allStudentsLists;
     }
 
     public void setClient(Client cl) {
@@ -115,14 +134,20 @@ public class ActiveUsersFragment extends Fragment {
         ImageButton btnsend = (ImageButton) getActivity().findViewById(R.id.btnSend);
         ImageButton btnStartExam = (ImageButton) getActivity().findViewById(R.id.btn_start_exam);
         ImageButton locksend = (ImageButton) getActivity().findViewById(R.id.btnLock);
+        ImageButton unlocksend = (ImageButton) getActivity().findViewById(R.id.btnunLock);
         ImageButton monitorBtn = (ImageButton) getActivity().findViewById(R.id.btnMonitor);
-
+        ImageButton captureImage = (ImageButton) getActivity().findViewById(R.id.btn_capturepic);
 
         final EditText inputMsg = (EditText) getActivity().findViewById(R.id.inputMsg);
         // Give Button Animation effect On press Button
         GeneralUtil.buttonEffect(sendfile);
         GeneralUtil.buttonEffect(btnsend);
         GeneralUtil.buttonEffect(btnStartExam);
+        GeneralUtil.buttonEffect(locksend);
+        GeneralUtil.buttonEffect(unlocksend);
+        GeneralUtil.buttonEffect(captureImage);
+
+        // end
         listview.setOnItemClickListener(new AdapterView.OnItemClickListener() {
 
             @Override
@@ -142,7 +167,14 @@ public class ActiveUsersFragment extends Fragment {
                         "INfo Message", Toast.LENGTH_LONG).show();
             }
         });
+        captureImage.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                // captureAndSavePicture();
+                takePicture();
 
+            }
+        });
 
         btnsend.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -165,9 +197,17 @@ public class ActiveUsersFragment extends Fragment {
             @Override
             public void onClick(View v) {
                 Toast.makeText(getActivity().getApplicationContext(), "lock sent",Toast.LENGTH_LONG).show();
-                sendLockMessage();
+                sendLockMessage(true);
             }
         });
+        unlocksend.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Toast.makeText(getActivity().getApplicationContext(), "lock sent", Toast.LENGTH_LONG).show();
+                sendLockMessage(false);
+            }
+        });
+
 
         // Start New Exam
         btnStartExam.setOnClickListener(new View.OnClickListener() {
@@ -187,10 +227,18 @@ public class ActiveUsersFragment extends Fragment {
                 mListener.showMonitor(getSelectedRecivers());
             }
         });
+
     }
 
     public void setActiveUsersList(List tlist) {
         this.l1 = tlist;
+    }
+
+    private void takePicture() {
+        Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+        if (takePictureIntent.resolveActivity(getActivity().getPackageManager()) != null) {
+            startActivityForResult(takePictureIntent, REQUEST_TAKE_PHOTO);
+        }
     }
 
 
@@ -256,6 +304,59 @@ public class ActiveUsersFragment extends Fragment {
 
         }else if(resultCode == MONITOR_CODE && resultCode == Activity.RESULT_OK){
 
+        } else if (requestCode == REQUEST_TAKE_PHOTO && resultCode == Activity.RESULT_OK) {
+            Bundle extras = data.getExtras();
+            Bitmap imageBitmap = (Bitmap) extras.get("data");
+            sendCapturedPicToClients(imageBitmap);
+            Toast.makeText(getActivity(),
+                    "Image Captured And Sent Completely", Toast.LENGTH_SHORT).show();
+
+        }
+
+    }
+
+    private void sendCapturedPicToClients(Bitmap bm) {
+        String ciFileName = System.currentTimeMillis() + ".jpg";
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        bm.compress(Bitmap.CompressFormat.JPEG, 40, baos);
+        byte[] imageBytes = baos.toByteArray();
+        BASE64Encoder encoder = new BASE64Encoder();
+        String encodedImage = encoder.encode(imageBytes);
+        CapturedImageMessage cim = new CapturedImageMessage();
+        cim.setSenderID(iam.getUserID());
+        cim.setSenderName(iam.getUserName());
+        cim.setRecivers(getSelectedRecivers());
+        cim.setPicture(encodedImage);
+        cim.setFileName(ciFileName);
+        final CapturedImageMessage ttcim = cim;
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                client.sendTCP(ttcim);
+            }
+        }).start();
+
+        // Write Image to file
+        writeByteImageTofile(imageBytes, ciFileName);
+
+
+    }
+
+    private void writeByteImageTofile(byte[] imageBytes, String imagefileName) {
+        String savepath = Environment.getExternalStorageDirectory().getPath();
+        savepath = savepath + "/Classroom/pics/";
+        File destination = new File(savepath, imagefileName);
+        FileOutputStream fo;
+        try {
+            destination.createNewFile();
+            fo = new FileOutputStream(destination);
+            fo.write(imageBytes);
+            fo.close();
+            Toast.makeText(getActivity().getApplicationContext(), "Write IMGE DONEe", Toast.LENGTH_SHORT).show();
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
         }
 
     }
@@ -274,6 +375,7 @@ public class ActiveUsersFragment extends Fragment {
         return result;
     }
 
+
     private void sendTextMessage(String txtmsg) {
         String[] recivers = getSelectedRecivers();
         TextMeesage currTm = new TextMeesage();
@@ -283,20 +385,22 @@ public class ActiveUsersFragment extends Fragment {
         currTm.setTextMessage(txtmsg);
         currTm.setRecivers(recivers);
         client.sendTCP(currTm);
+
         if (chatMessageModelList != null) {
             // TODO: 27/03/16  this must saved in DB 
-            SendUtil.convertTextMessageToChatMessageModl(currTm, chatMessageModelList);
+            SendUtil.convertTextMessageToChatMessageModl(currTm, allStudentsLists);
         }
 
     }
 
-    public void sendLockMessage(){
+
+    public void sendLockMessage(boolean lockstate) {
         String[] receivers = getSelectedRecivers();
         LockMessage lockMessage = new LockMessage();
         lockMessage.setReceivers(receivers);
         lockMessage.setSenderID(iam.getUserID());
         lockMessage.setSenderName(iam.getUserName());
-        lockMessage.setLock(isLock);
+        lockMessage.setLock(lockstate);
         client.sendTCP(lockMessage);
         isLock = !isLock;
         Log.i("Lock", "Lock Message send");
@@ -342,6 +446,37 @@ public class ActiveUsersFragment extends Fragment {
 
         return false;
     }
+
+    /// this functions used to save captured image from cam;
+    public void captureAndSavePicture() {
+        String savepath = Environment.getExternalStorageDirectory().getPath();
+        String saveDirectoryPath = savepath + "/Classroom/pics/";
+        File folders = new File(saveDirectoryPath);
+
+        if (!(folders.exists())) {
+            folders.mkdirs();
+        }
+        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyymmddhhmmss");
+        String date = dateFormat.format(new Date());
+        String photoFile = "CMS_" + date + ".jpg";
+
+        String FilePath = saveDirectoryPath + photoFile;
+
+        File NewImageFile = new File(FilePath);
+        try {
+            NewImageFile.createNewFile();
+        } catch (IOException e) {
+        }
+
+        Uri outputFileUri = Uri.fromFile(NewImageFile);
+
+        Intent cameraIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+        cameraIntent.putExtra(MediaStore.EXTRA_OUTPUT, outputFileUri);
+        startActivityForResult(cameraIntent, REQUEST_TAKE_PHOTO);
+
+    }
+
+
 
 
     @Override
@@ -390,10 +525,11 @@ public class ActiveUsersFragment extends Fragment {
      */
     public interface OnFragmentInteractionListener {
         // TODO: Update argument type and name
-        public void onFragmentInteraction(int fragmentID);
+        void onFragmentInteraction(int fragmentID);
 
-        public void addNewChatModelMessage(ChatMessageModel cml);
-        public void showMonitor(String[] receivers);
+        void addNewChatModelMessage(ChatMessageModel cml);
+
+        void showMonitor(String[] receivers);
     }
 
 }

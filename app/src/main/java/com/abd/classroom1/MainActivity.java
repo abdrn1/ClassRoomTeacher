@@ -14,6 +14,7 @@ import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.widget.Toast;
 
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryonet.Client;
@@ -24,6 +25,7 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Hashtable;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity
@@ -36,6 +38,10 @@ public class MainActivity extends AppCompatActivity
         AddRemoveSync {
 
     // begin note : should be save later in the bundle;
+    private final int LOGINFRAG = 1;
+    private final int ACTIVEUSERSFRAG = 2;
+    private final int MESSSAGEVIWERFRAG = 3;
+    private final int EXAMRESULTFRAG = 4;
     Client client;
     Kryo kryo;
     FragmentManager fm;
@@ -46,15 +52,15 @@ public class MainActivity extends AppCompatActivity
     MessageViewerFragment messageViewerFragment;
     ExamResultViewerFragment examResultViewerFragment;
     MonitorFragment monitorFragment;
-
+    String[] clientStatus;
     ///
     private UserLogin iam;
     private List<ChatMessageModel> chatMessageModelList;
     private List<ClientModel> clientsList;
     private List<ExamResultModel> examResultModels;
+    private Hashtable<String, List<ChatMessageModel>> allStudentsLists;
     private Thread checkServer;
     private int activeFragmentID = 1;
-    String[] clientStatus;
 
 
     ///// end note
@@ -74,22 +80,11 @@ public class MainActivity extends AppCompatActivity
         aa.setStudentMark(25);
         aa.setExamMark(50);
         chatMessageModelList = Collections.synchronizedList(new ArrayList<ChatMessageModel>());
-
-        // for saving conversation
+        allStudentsLists = new Hashtable<>();
         examResultModels = new ArrayList<>(); // for saving exam result
         examResultModels.add(aa);
         clientsList = new ArrayList<>();// for saving active clients
         clientStatus = getResources().getStringArray(R.array.client_status); // String Array of clients status
-
-       /* FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
-        fab.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
-                        .setAction("Action", null).show();
-            }
-        });*/
-
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
         ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(
                 this, drawer, toolbar, R.string.navigation_drawer_open, R.string.navigation_drawer_close);
@@ -162,7 +157,7 @@ public class MainActivity extends AppCompatActivity
         if (id == R.id.mi_exam_result) {
             Log.d("frag", "Curren Active = " + Integer.toString(activeFragmentID));
             // Handle the camera action
-            if (activeFragmentID == 4) {
+            if (activeFragmentID == EXAMRESULTFRAG) {
                 examResultViewerFragment.updateExamResultContent();
             } else {
                 if (iam != null && ft != null) {
@@ -170,7 +165,7 @@ public class MainActivity extends AppCompatActivity
                     ft = fm.beginTransaction();
                     ft.replace(R.id.fragment_container, examResultViewerFragment, "EXAMEXAM");
                     examResultViewerFragment.setL1(examResultModels);
-                    activeFragmentID = 4;
+                    activeFragmentID = EXAMRESULTFRAG;
                     ft.addToBackStack(null);
                     //examResultViewerFragment.set(iam);
                     ft.commit();
@@ -181,7 +176,7 @@ public class MainActivity extends AppCompatActivity
             }
         } else if (id == R.id.nmi_active_users) {
 
-            if (activeFragmentID == 2) {
+            if (activeFragmentID == ACTIVEUSERSFRAG) {
                 activeusersfragment.updateActiveListContent();
             } else {
                 if (iam != null && ft != null) {
@@ -191,7 +186,7 @@ public class MainActivity extends AppCompatActivity
                     activeusersfragment.setClient(client);
                     activeusersfragment.setActiveUsersList(clientsList);
                     activeusersfragment.setUserlogin(iam);
-                    activeFragmentID = 2;
+                    activeFragmentID = ACTIVEUSERSFRAG;
                     ft.commit();
 
 
@@ -221,7 +216,7 @@ public class MainActivity extends AppCompatActivity
         kryo.register(MonitorRequestMessage.class);
         kryo.register(ScreenshotMessage.class);
         kryo.register(BoardScreenshotMessage.class);
-
+        kryo.register(CapturedImageMessage.class); // class to send captured image
     }
 
     public boolean openConnection() throws Exception {
@@ -266,16 +261,17 @@ public class MainActivity extends AppCompatActivity
                             activeusersfragment.setClient(client);
                             activeusersfragment.setUserlogin((UserLogin) ob);
                             activeusersfragment.setActiveUsersList(clientsList);
-                            activeusersfragment.setChatMessageModelList(chatMessageModelList);
+                            //activeusersfragment.setChatMessageModelList(chatMessageModelList);
+                            activeusersfragment.setAllStudentsLists(allStudentsLists);
                             ft.commit();
+                            //activeFragmentID = ACTIVEUSERSFRAG;
                             Log.d("INFO", "Succesfull Log IN");
                         } else {
                             loginfrag.showInvalidLoginMessage();
                         }
                     } else if (((UserLogin) ob).getUserType().equals("STUDENT")) {
                         addNewActiveClient((UserLogin) ob);
-
-                        if (activeFragmentID == 2) {
+                        if (activeFragmentID == ACTIVEUSERSFRAG) {
 
                             activeusersfragment.setActiveUsersList(clientsList);
 
@@ -331,16 +327,22 @@ public class MainActivity extends AppCompatActivity
         if (simplem.getMessageType().equals("TXT")) {
             ChatMessageModel chm = new ChatMessageModel(simplem.getSenderName(), "", "TXT", simplem.getTextMessage(), false);
             chm.setSenderID(simplem.getSenderID());
-            chatMessageModelList.add(chm);
+            chatMessageModelList = allStudentsLists.get(simplem.getSenderID());
+            if (chatMessageModelList != null) {
+                chatMessageModelList.add(chm);
+            } else {
+                Toast.makeText(getApplicationContext(), "No Chat List For This Sender", Toast.LENGTH_SHORT).show();
+            }
+
         }
-        if ((activeFragmentID == 3) && (messageViewerFragment != null)) {
+        if ((activeFragmentID == MESSSAGEVIWERFRAG) && (messageViewerFragment != null)) {
             Log.d("info", " Display on Message Viewer");
 
-            messageViewerFragment.setMessagesList(chatMessageModelList);
+            // messageViewerFragment.setMessagesList(chatMessageModelList);
+            //messageViewerFragment.addNewMessage(simplem,false);
             messageViewerFragment.updateMessageListContent();
 
-        }
-        if (activeFragmentID == 2) {
+        } else {
             Log.d("info", "Display Message On Counter Only");
             increasetUnreadMessageCounter(simplem.getSenderID());
             if (activeusersfragment != null) {
@@ -374,6 +376,7 @@ public class MainActivity extends AppCompatActivity
         System.out.println();
         if (!(ifUserExistUpdate(ul))) {
             clientsList.add(t);
+            allStudentsLists.put(ul.getUserID(), new ArrayList<ChatMessageModel>());
         }
     }
 
@@ -471,7 +474,6 @@ public class MainActivity extends AppCompatActivity
                             loginfrag.hideErrorMessage();
                         }
                     });
-                    ;
                     flag = false;
                 }
 
@@ -501,6 +503,16 @@ public class MainActivity extends AppCompatActivity
     public void onFragmentInteraction(int fragmentID) {
         this.activeFragmentID = fragmentID;
 
+    }
+
+    @Override
+    public void addNewTextMessageFromMessageViewer(SimpleTextMessage sm) {
+        // no longer needed
+     /*   if (sm.getMessageType().equals("TXT")) {
+            ChatMessageModel chm = new ChatMessageModel(sm.getSenderName(), "", "TXT", sm.getTextMessage(), false);
+            chm.setSenderID(sm.getSenderID());
+            chatMessageModelList.add(chm);
+        }*/
     }
 
     @Override
@@ -550,10 +562,10 @@ public class MainActivity extends AppCompatActivity
         messageViewerFragment.setUserlogin(iam);
         messageViewerFragment.setClient(client);
         messageViewerFragment.setReciverID(useriD);
-        List<ChatMessageModel> temp = SendUtil.getClientUnreadMessages(useriD, chatMessageModelList);
-        messageViewerFragment.setMessagesList(temp);
+        //  List<ChatMessageModel> temp = SendUtil.getClientUnreadMessages(useriD, chatMessageModelList);
+        messageViewerFragment.setMessagesList(allStudentsLists.get(useriD));
         ft.replace(R.id.fragment_container, messageViewerFragment, "VIEWMSG");
-        activeFragmentID = 3;
+        activeFragmentID = MESSSAGEVIWERFRAG;
         ft.addToBackStack(null);
         ft.commit();
 

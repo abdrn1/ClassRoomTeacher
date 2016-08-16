@@ -8,6 +8,8 @@ import android.view.View;
  * Created by Abd on 3/17/2016.
  */
 public class GeneralUtil {
+
+
     public static void buttonEffect(final View button) {
         button.setOnTouchListener(new View.OnTouchListener() {
 
@@ -39,10 +41,8 @@ public class GeneralUtil {
         }
         if (ext == null)
             return false;
-        else if (!ext.equals("jpg") && !ext.equals("jpeg") && !ext.equals("png") && !ext.equals("gif"))
-            return false;
         else
-            return true;
+            return !(!ext.equals("jpg") && !ext.equals("jpeg") && !ext.equals("png") && !ext.equals("gif"));
     }
 
 

@@ -2,19 +2,24 @@ package com.abd.classroom1;
 
 import android.app.Activity;
 import android.app.Fragment;
+import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageButton;
 import android.widget.ListView;
+import android.widget.Toast;
 
 import com.esotericsoftware.kryonet.Client;
 
+import java.io.IOException;
 import java.util.List;
 
 
@@ -32,6 +37,7 @@ public class MessageViewerFragment extends Fragment {
     private static final String ARG_PARAM1 = "param1";
     private static final String ARG_PARAM2 = "param2";
     private static final int FRAG_ID = 3;
+    private static int FILE_SELECT_CODE = 2;
 
     // TODO: Rename and change types of parameters
     private String mParam1;
@@ -45,6 +51,11 @@ public class MessageViewerFragment extends Fragment {
     private ListView listview;
     private List<ChatMessageModel> l1;
     private MessagesListAdapter mLAdapter;
+
+
+    public MessageViewerFragment() {
+        // Required empty public constructor
+    }
 
     /**
      * Use this factory method to create a new instance of
@@ -81,6 +92,9 @@ public class MessageViewerFragment extends Fragment {
         listview.setAdapter(mLAdapter);
         final EditText inputMsg = (EditText)getActivity().findViewById(R.id.inputMsg);
         Button btnsend = (Button) getActivity().findViewById(R.id.btnSend);
+        ImageButton btnsendfile = (ImageButton) getActivity().findViewById(R.id.btn_msgv_sendfile);
+        GeneralUtil.buttonEffect(btnsendfile);
+        GeneralUtil.buttonEffect(btnsend);
         btnsend.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -93,6 +107,13 @@ public class MessageViewerFragment extends Fragment {
                 }
             }
         });
+        btnsendfile.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                sendFile();
+            }
+        });
+
 
     }
 
@@ -107,9 +128,51 @@ public class MessageViewerFragment extends Fragment {
         currTm.setMessageType("TXT");
         currTm.setTextMessage(txtmsg);
         currTm.setRecivers(new String[]{reciverID});
-        addNewMessage(new SimpleTextMessage(iam.getUserID(), iam.getUserName(), "TXT", txtmsg), true);
-        client.sendTCP(currTm);
+        SimpleTextMessage sm1 = new SimpleTextMessage(iam.getUserID(), iam.getUserName(), "TXT", txtmsg);
+        addNewMessage(sm1, true);
+        // mListener.addNewTextMessageFromMessageViewer(sm1);
 
+        client.sendTCP(currTm);
+    }
+
+    private void sendFile() {
+        Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+        intent.setType("file/*");
+        startActivityForResult(intent, FILE_SELECT_CODE);
+        Toast.makeText(getActivity(),
+                "INfo Message", Toast.LENGTH_LONG).show();
+    }
+
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == FILE_SELECT_CODE && resultCode == Activity.RESULT_OK
+                && null != data) {
+            final Uri uri = data.getData();
+            String path = SendUtil.getRealPathFromURI(uri, getActivity());
+            // String path = getRealPathFromURI(uri);
+            Log.d("INFO", path);
+            Toast.makeText(getActivity(), "File: " + path +
+                    ", Loadded Copletely", Toast.LENGTH_SHORT).show();
+
+            Log.d("INFO", iam.getUserName());
+            Log.d("INFO", iam.getUserType());
+
+            FileChunkMessageV2 fblock = new FileChunkMessageV2();
+            fblock.setSenderName(iam.getUserName());
+            fblock.setSenderID(iam.getUserID());
+            try {
+                Log.d("INFO", "READ AND SEND FILE HERE");
+                SendUtil.readAndSendFile(getActivity(), path, client, iam, new String[]{reciverID}, FileChunkMessageV2.FILE);
+
+            } catch (IOException e) {
+                Toast.makeText(getActivity(),
+                        "Error While Sending file", Toast.LENGTH_SHORT).show();
+                e.printStackTrace();
+
+
+            }
+        }
     }
 
     public void setClient(Client cl) {
@@ -118,10 +181,6 @@ public class MessageViewerFragment extends Fragment {
 
     public void setUserlogin(UserLogin ul) {
         this.iam = ul;
-    }
-
-    public MessageViewerFragment() {
-        // Required empty public constructor
     }
 
     @Override
@@ -142,11 +201,12 @@ public class MessageViewerFragment extends Fragment {
         });
     }
 
-    protected void addNewMessage(SimpleTextMessage simplem,boolean fromMe ) {
+    private void addNewMessage(SimpleTextMessage simplem, boolean fromMe) {
+
         if (simplem.getMessageType().equals("TXT")) {
             ChatMessageModel chm = new ChatMessageModel(simplem.getSenderName(), "", "TXT", simplem.getTextMessage(), fromMe);
             l1.add(chm);
-            mLAdapter.notifyDataSetChanged();
+
         }
 
     }
@@ -160,12 +220,17 @@ public class MessageViewerFragment extends Fragment {
         Bitmap bm = BitmapFactory.decodeResource(getResources(), R.drawable.ring1);
         chm.setImage(bm);
         l1.add(chm);
-        mLAdapter.notifyDataSetChanged();
+        updateAdapterchanges();
         return  chm;
 
     }
     protected  void updateAdapterchanges(){
-        mLAdapter.notifyDataSetChanged();
+        getActivity().runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                mLAdapter.notifyDataSetChanged();
+            }
+        });
     }
 
 
@@ -212,7 +277,9 @@ public class MessageViewerFragment extends Fragment {
     public interface OnFragmentInteractionListener {
         // TODO: Update argument type and name
         // public void onFragmentInteraction(Uri uri);
-        public void onFragmentInteraction(int fragmentID);
+        void onFragmentInteraction(int fragmentID);
+
+        void addNewTextMessageFromMessageViewer(SimpleTextMessage sm);
     }
 
 }

@@ -77,26 +77,17 @@
         android:orientation="horizontal"
         android:padding="0dp"
         android:weightSum="1">
-
-        <ImageButton
-            android:id="@+id/btn_prev"
-            android:layout_width="50dp"
-            android:layout_height="40dp"
-            android:layout_marginLeft="0dp"
-            android:background="@drawable/circle_shape"
-            android:src="@drawable/cam1" />
-
         <ImageButton
             android:id="@+id/btn_start_exam"
             android:layout_width="50dp"
-            android:layout_height="40dp"
+            android:layout_height="55dp"
             android:layout_marginLeft="0dp"
 
             android:background="@drawable/circle_shape"
             android:src="@drawable/testicon" />
         <ImageButton
             android:id="@+id/btnLock"
-            android:layout_width="42dp"
+            android:layout_width="50dp"
             android:layout_height="fill_parent"
             android:layout_marginLeft="5dp"
             android:layout_marginStart="5dp"
@@ -106,8 +97,27 @@
             />
 
         <ImageButton
+            android:id="@+id/btnunLock"
+            android:layout_width="55dp"
+            android:layout_height="fill_parent"
+            android:layout_marginLeft="5dp"
+            android:layout_marginStart="5dp"
+            android:background="@drawable/circle_shape"
+            android:src="@drawable/unlock"
+            android:textColor="@color/white" />
+
+        <ImageButton
+            android:id="@+id/btn_capturepic"
+            android:layout_width="55dp"
+            android:layout_height="fill_parent"
+            android:layout_marginLeft="5dp"
+            android:layout_marginStart="5dp"
+            android:background="@drawable/circle_shape"
+            android:src="@drawable/cam1" />
+
+        <ImageButton
             android:id="@+id/btnMonitor"
-            android:layout_width="42dp"
+            android:layout_width="55dp"
             android:layout_height="fill_parent"
             android:layout_marginLeft="5dp"
             android:layout_marginStart="5dp"

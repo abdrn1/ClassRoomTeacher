@@ -1,8 +1,11 @@
 package com.abd.classroom1;
 
 import android.app.Activity;
+import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.net.Uri;
+import android.provider.MediaStore;
 import android.util.Log;
 
 import com.esotericsoftware.kryonet.Client;
@@ -11,6 +14,7 @@ import org.apache.commons.io.FilenameUtils;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Hashtable;
 import java.util.List;
 
 /**
@@ -84,10 +88,18 @@ public class SendUtil {
 
     }
 
-    public static void convertTextMessageToChatMessageModl(TextMeesage tm, List<ChatMessageModel> cmlLsit) {
+    public static void convertTextMessageToChatMessageModl(TextMeesage tm, Hashtable<String, List<ChatMessageModel>> allStudentsLists) {
+        List<ChatMessageModel> currList = null;
         String[] recivers = tm.getRecivers();
         if (recivers != null) {
             for (String rec : recivers) {
+
+                currList = allStudentsLists.get(rec);
+                if (currList == null) {
+                    currList = new ArrayList<ChatMessageModel>();
+                    allStudentsLists.put(rec, currList);
+                    Log.d("ERR", "No Chat List Found , func: sendutil.convertTextMess");
+                }
                 ChatMessageModel temp = new ChatMessageModel();
                 temp.setSenderID(rec);
                 temp.setSenderName(tm.getSenderName());
@@ -95,8 +107,7 @@ public class SendUtil {
                 temp.setMessageType(tm.getMessageType());
                 temp.setIsSelf(true);
                 // TODO: 27/03/16 image and file message
-
-                cmlLsit.add(temp);
+                currList.add(temp);
 
             }
         }
@@ -113,10 +124,8 @@ public class SendUtil {
         }
         if (ext == null)
             return false;
-        else if (!ext.equals("jpg") && !ext.equals("jpeg") && !ext.equals("png") && !ext.equals("gif"))
-            return false;
         else
-            return true;
+            return !(!ext.equals("jpg") && !ext.equals("jpeg") && !ext.equals("png") && !ext.equals("gif"));
     }
 
 
@@ -129,6 +138,20 @@ public class SendUtil {
         }
 
         return templ;
+    }
+
+    public static String getRealPathFromURI(Uri contentURI, Activity act) {
+        String result;
+        Cursor cursor = act.getContentResolver().query(contentURI, null, null, null, null);
+        if (cursor == null) { // Source is Dropbox or other similar local file path
+            result = contentURI.getPath();
+        } else {
+            cursor.moveToFirst();
+            int idx = cursor.getColumnIndex(MediaStore.Images.ImageColumns.DATA);
+            result = cursor.getString(idx);
+            cursor.close();
+        }
+        return result;
     }
 
 
