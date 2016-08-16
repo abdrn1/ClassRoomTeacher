@@ -50,7 +50,7 @@
             android:layout_marginRight="7dp"
             android:layout_marginStart="5dp"
             android:background="@drawable/circle_shape"
-            android:src="@drawable/ic_send_black_24dp"
+            android:src="@drawable/l1send"
             android:textColor="@color/white"
              />
 
@@ -81,10 +81,10 @@
             android:id="@+id/btn_start_exam"
             android:layout_width="50dp"
             android:layout_height="55dp"
-            android:layout_marginLeft="0dp"
+            android:layout_marginLeft="2dp"
 
             android:background="@drawable/circle_shape"
-            android:src="@drawable/testicon" />
+            android:src="@drawable/l2exam" />
         <ImageButton
             android:id="@+id/btnLock"
             android:layout_width="50dp"
@@ -92,7 +92,7 @@
             android:layout_marginLeft="5dp"
             android:layout_marginStart="5dp"
             android:background="@drawable/circle_shape"
-            android:src="@drawable/lock"
+            android:src="@drawable/l1locked"
             android:textColor="@color/white"
             />
 
@@ -103,7 +103,7 @@
             android:layout_marginLeft="5dp"
             android:layout_marginStart="5dp"
             android:background="@drawable/circle_shape"
-            android:src="@drawable/unlock"
+            android:src="@drawable/l1unlocked"
             android:textColor="@color/white" />
 
         <ImageButton
@@ -113,7 +113,7 @@
             android:layout_marginLeft="5dp"
             android:layout_marginStart="5dp"
             android:background="@drawable/circle_shape"
-            android:src="@drawable/cam1" />
+            android:src="@drawable/l1camera" />
 
         <ImageButton
             android:id="@+id/btnMonitor"
@@ -122,7 +122,7 @@
             android:layout_marginLeft="5dp"
             android:layout_marginStart="5dp"
             android:background="@drawable/circle_shape"
-            android:src="@drawable/monitor"
+            android:src="@drawable/l1television"
             android:textColor="@color/white"
             />
 

@@ -119,6 +119,7 @@ public class MainActivity extends AppCompatActivity
         }
         if (getFragmentManager().getBackStackEntryCount() > 0) {
             getFragmentManager().popBackStack();
+            activeFragmentID = ACTIVEUSERSFRAG;
             Log.d("Info", "Acrive frag ID = :" + Integer.toString(activeFragmentID));
         } else {
             super.onBackPressed();

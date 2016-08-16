@@ -7,10 +7,13 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Environment;
+import android.provider.MediaStore;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageButton;
@@ -19,8 +22,16 @@ import android.widget.Toast;
 
 import com.esotericsoftware.kryonet.Client;
 
+import org.apache.commons.io.FilenameUtils;
+
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.List;
+
+import Decoder.BASE64Encoder;
 
 
 /**
@@ -38,6 +49,7 @@ public class MessageViewerFragment extends Fragment {
     private static final String ARG_PARAM2 = "param2";
     private static final int FRAG_ID = 3;
     private static int FILE_SELECT_CODE = 2;
+    private static int REQUEST_TAKE_PHOTO = 5;
 
     // TODO: Rename and change types of parameters
     private String mParam1;
@@ -93,8 +105,33 @@ public class MessageViewerFragment extends Fragment {
         final EditText inputMsg = (EditText)getActivity().findViewById(R.id.inputMsg);
         Button btnsend = (Button) getActivity().findViewById(R.id.btnSend);
         ImageButton btnsendfile = (ImageButton) getActivity().findViewById(R.id.btn_msgv_sendfile);
+        ImageButton btnCaptureImage = (ImageButton) getActivity().findViewById(R.id.btn_msgv_captureimage);
         GeneralUtil.buttonEffect(btnsendfile);
         GeneralUtil.buttonEffect(btnsend);
+        listview.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+
+                String msgType = (l1.get(position)).getMessageType();
+                Log.d("item", "The Itemclicked " + msgType);
+                if (msgType.equals("IMG")) {
+                    String fname = (l1.get(position)).getSimpleMessage();
+                    String savePath = Environment.getExternalStorageDirectory().getPath();
+                    savePath = (l1.get(position)).getFilepath();
+                    GeneralUtil.openImage(getActivity(), savePath);
+                }
+
+            }
+        });
+
+        btnCaptureImage.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+
+            }
+        });
+
+
         btnsend.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -115,10 +152,18 @@ public class MessageViewerFragment extends Fragment {
         });
 
 
+
     }
 
     public void setMessagesList(List<ChatMessageModel> ll) {
         this.l1 = ll;
+    }
+
+    private void takePicture() {
+        Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+        if (takePictureIntent.resolveActivity(getActivity().getPackageManager()) != null) {
+            startActivityForResult(takePictureIntent, REQUEST_TAKE_PHOTO);
+        }
     }
 
     private void sendTextMessage(String txtmsg) {
@@ -161,9 +206,12 @@ public class MessageViewerFragment extends Fragment {
             FileChunkMessageV2 fblock = new FileChunkMessageV2();
             fblock.setSenderName(iam.getUserName());
             fblock.setSenderID(iam.getUserID());
+            fblock.setFileName(FilenameUtils.getName(path));
             try {
                 Log.d("INFO", "READ AND SEND FILE HERE");
                 SendUtil.readAndSendFile(getActivity(), path, client, iam, new String[]{reciverID}, FileChunkMessageV2.FILE);
+                addNewImageMessage(fblock, path, true);
+
 
             } catch (IOException e) {
                 Toast.makeText(getActivity(),
@@ -172,7 +220,65 @@ public class MessageViewerFragment extends Fragment {
 
 
             }
+        } else if (requestCode == REQUEST_TAKE_PHOTO && resultCode == Activity.RESULT_OK) {
+            Bundle extras = data.getExtras();
+            Bitmap imageBitmap = (Bitmap) extras.get("data");
+            sendCapturedPicToClients(imageBitmap);
+            Toast.makeText(getActivity(),
+                    "Image Captured And Sent Completely", Toast.LENGTH_SHORT).show();
+
         }
+    }
+
+    private void sendCapturedPicToClients(Bitmap bm) {
+        String ciFileName = System.currentTimeMillis() + ".jpg";
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        bm.compress(Bitmap.CompressFormat.JPEG, 40, baos);
+        byte[] imageBytes = baos.toByteArray();
+        BASE64Encoder encoder = new BASE64Encoder();
+        String encodedImage = encoder.encode(imageBytes);
+        CapturedImageMessage cim = new CapturedImageMessage();
+        cim.setSenderID(iam.getUserID());
+        cim.setSenderName(iam.getUserName());
+        cim.setRecivers(new String[]{reciverID});
+        cim.setPicture(encodedImage);
+        cim.setFileName(ciFileName);
+
+        final CapturedImageMessage ttcim = cim;
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                client.sendTCP(ttcim);
+            }
+        }).start();
+
+        // Write Image to file
+        writeByteImageTofile(imageBytes, ciFileName);
+        String savepath = Environment.getExternalStorageDirectory().getPath();
+        savepath = savepath + "/Classroom/pics/" + cim.getFileName();
+        addNewCapturedImageMessage(cim, savepath);
+
+
+        //SendUtil.convertCapturedImageMessageTOChatMessageMode(cim,savepath,allStudentsLists);
+    }
+
+    private void writeByteImageTofile(byte[] imageBytes, String imagefileName) {
+        String savepath = Environment.getExternalStorageDirectory().getPath();
+        savepath = savepath + "/Classroom/pics/";
+        File destination = new File(savepath, imagefileName);
+        FileOutputStream fo;
+        try {
+            destination.createNewFile();
+            fo = new FileOutputStream(destination);
+            fo.write(imageBytes);
+            fo.close();
+            Toast.makeText(getActivity().getApplicationContext(), "Write IMGE DONEe", Toast.LENGTH_SHORT).show();
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
     }
 
     public void setClient(Client cl) {
@@ -210,19 +316,48 @@ public class MessageViewerFragment extends Fragment {
         }
 
     }
-    protected ChatMessageModel addNewImageMessage(FileChunkMessageV2 fcmv2,boolean fromMe ) {
+
+    protected ChatMessageModel addNewCapturedImageMessage(CapturedImageMessage cim, String filePath) {
+        ChatMessageModel temp = new ChatMessageModel();
+        temp.setIsSelf(true);
+        temp.setSenderID(cim.getSenderID());
+        temp.setSenderName(cim.getSenderName());
+        temp.setFilepath(filePath);
+        temp.setSimpleMessage(cim.getFileName());
+        Bitmap bm1 = ScalDownImage.decodeSampledBitmapFromResource(filePath, 80, 80);
+        temp.setImage(bm1);
+        temp.setMessageType("IMG");
+        l1.add(temp);
+        updateAdapterchanges();
+        return temp;
+    }
+
+    protected ChatMessageModel addNewImageMessage(FileChunkMessageV2 fcmv2, String filepath, boolean fromMe) {
         String fileType="FLE";
+
         if(GeneralUtil.checkIfFileIsImage(fcmv2.getFileName())){
             fileType = "IMG";
         }
-
         ChatMessageModel chm = new ChatMessageModel(fcmv2.getSenderName(), "", fileType,fcmv2.getFileName()+" Recived, Wait To Complete Loading", fromMe);
-        Bitmap bm = BitmapFactory.decodeResource(getResources(), R.drawable.ring1);
+        chm.setFilepath(filepath);
+        Bitmap bm;
+
+        if (fileType.equals("IMG")) {
+            bm = ScalDownImage.decodeSampledBitmapFromResource(filepath, 80, 80);
+            chm.setImage(bm);
+            chm.setMessageType("IMG");
+            chm.setSimpleMessage(fcmv2.getFileName());
+        } else {
+            bm = BitmapFactory.decodeResource(getResources(), R.drawable.filecompleteicon);
+            chm.setImage(bm);
+            chm.setSimpleMessage(fcmv2.getFileName());
+            chm.setMessageType("FLE");
+        }
+
         chm.setImage(bm);
         l1.add(chm);
         updateAdapterchanges();
         return  chm;
-
     }
     protected  void updateAdapterchanges(){
         getActivity().runOnUiThread(new Runnable() {

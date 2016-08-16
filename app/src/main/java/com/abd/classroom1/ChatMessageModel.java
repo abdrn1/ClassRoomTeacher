@@ -13,6 +13,7 @@ public class ChatMessageModel {
     String simpleMessage;
     String senderID;
     Bitmap image;
+    String filepath;
     boolean isSelf;
 
 
@@ -21,13 +22,6 @@ public class ChatMessageModel {
 
     }
 
-    public String getSenderID() {
-        return senderID;
-    }
-
-    public void setSenderID(String senderID) {
-        this.senderID = senderID;
-    }
 
     public ChatMessageModel(String senderName, String recivers, String messageType, String simpleMessage, boolean isSelf) {
         this.senderName = senderName;
@@ -35,6 +29,22 @@ public class ChatMessageModel {
         this.messageType = messageType;
         this.simpleMessage = simpleMessage;
         this.isSelf = isSelf;
+    }
+
+    public String getFilepath() {
+        return filepath;
+    }
+
+    public void setFilepath(String filepath) {
+        this.filepath = filepath;
+    }
+
+    public String getSenderID() {
+        return senderID;
+    }
+
+    public void setSenderID(String senderID) {
+        this.senderID = senderID;
     }
 
     public Bitmap getImage() {

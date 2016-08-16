@@ -21,6 +21,8 @@ import android.widget.Toast;
 
 import com.esotericsoftware.kryonet.Client;
 
+import org.apache.commons.io.FilenameUtils;
+
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -264,9 +266,13 @@ public class ActiveUsersFragment extends Fragment {
             FileChunkMessageV2 fblock = new FileChunkMessageV2();
             fblock.setSenderName(iam.getUserName());
             fblock.setSenderID(iam.getUserID());
+            fblock.setFileName(FilenameUtils.getName(path));
+            fblock.setRecivers(getSelectedRecivers());
             try {
                 Log.d("INFO", "READ AND SEND FILE HERE");
                 SendUtil.readAndSendFile(getActivity(), path, client, iam, getSelectedRecivers(), FileChunkMessageV2.FILE);
+                Log.d("OK", "Convert FileTO MODEl");
+                SendUtil.convertFileChunkToChatMessageModl(getActivity(), path, fblock, allStudentsLists);
 
             } catch (IOException e) {
                 Toast.makeText(getActivity(),
@@ -289,6 +295,7 @@ public class ActiveUsersFragment extends Fragment {
             FileChunkMessageV2 fblock = new FileChunkMessageV2();
             fblock.setSenderName(iam.getUserName());
             fblock.setSenderID(iam.getUserID());
+
             //  client.sendTCP(fblock);
             try {
                 Log.d("INFO", "READ AND SEND EXAM HERE");
@@ -328,6 +335,7 @@ public class ActiveUsersFragment extends Fragment {
         cim.setRecivers(getSelectedRecivers());
         cim.setPicture(encodedImage);
         cim.setFileName(ciFileName);
+
         final CapturedImageMessage ttcim = cim;
         new Thread(new Runnable() {
             @Override
@@ -338,8 +346,9 @@ public class ActiveUsersFragment extends Fragment {
 
         // Write Image to file
         writeByteImageTofile(imageBytes, ciFileName);
-
-
+        String savepath = Environment.getExternalStorageDirectory().getPath();
+        savepath = savepath + "/Classroom/pics/" + cim.getFileName();
+        SendUtil.convertCapturedImageMessageTOChatMessageMode(cim, savepath, allStudentsLists);
     }
 
     private void writeByteImageTofile(byte[] imageBytes, String imagefileName) {

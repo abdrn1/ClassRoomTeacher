@@ -42,52 +42,6 @@ public class SendUtil {
         Log.d("INFO", "Start Thread");
     }
 
-    public static void convertFileChunkToChatMessageModl(Activity activity, String filePath, FileChunkMessageV2 tm, List<ChatMessageModel> cmlLsit) {
-        String[] recivers = tm.getRecivers();
-        if (recivers != null) {
-            for (String rec : recivers) {
-                ChatMessageModel temp = new ChatMessageModel();
-                temp.setSenderID(rec);
-                temp.setSenderName(tm.getSenderName());
-
-                if (checkIfFileIsImage(tm.getFileName())) {
-                    //Image FIle
-                    // Bitmap bm = ScalingUtilities.fitImageDecoder(tempImagePath,mDstWidth,mDstHeight);
-                    Bitmap bm = ScalDownImage.decodeSampledBitmapFromResource(filePath, 150, 150);
-                    temp.setImage(bm);
-                    temp.setMessageType("IMG");
-                    temp.setSimpleMessage(tm.getFileName());
-
-                } else {
-                    Bitmap bm = BitmapFactory.decodeResource(activity.getResources(), R.drawable.filecompleteicon);
-                    temp.setImage(bm);
-                    temp.setSimpleMessage(tm.getFileName());
-                    temp.setMessageType("FILE");
-                    // ANY FILE
-                }
-
-
-                cmlLsit.add(temp);
-
-            }
-        }
-    }
-
-    public static void reConnect(Client cl, UserLogin iam) throws IOException {
-
-        if ((cl != null) && (iam != null)) {
-            if (!cl.isConnected()) {
-                cl.reconnect();
-                cl.sendTCP(iam);
-                Log.d("con", "Try To Reconnect");
-                Log.d("con", "Iam " + iam.getUserID());
-                Log.d("con", "Iam " + iam.getUserType());
-
-            }
-        }
-
-    }
-
     public static void convertTextMessageToChatMessageModl(TextMeesage tm, Hashtable<String, List<ChatMessageModel>> allStudentsLists) {
         List<ChatMessageModel> currList = null;
         String[] recivers = tm.getRecivers();
@@ -112,6 +66,87 @@ public class SendUtil {
             }
         }
     }
+
+    public static void convertFileChunkToChatMessageModl(Activity activity, String filePath, FileChunkMessageV2 tm, Hashtable<String, List<ChatMessageModel>> allStudentsLists) {
+        Log.d("OK", "Start Cnvert File  func:ConvertFileChunk");
+        String[] recivers = tm.getRecivers();
+        List<ChatMessageModel> currList = null;
+        if (recivers != null) {
+            for (String rec : recivers) {
+                currList = allStudentsLists.get(rec);
+                if (currList == null) {
+                    currList = new ArrayList<ChatMessageModel>();
+                    allStudentsLists.put(rec, currList);
+                    Log.d("ERR", "No Chat List Found , func: sendutil.convertTextMess");
+                }
+
+                Log.d("OK", "User Found = " + rec + "  func:ConvertFileChunk");
+
+                ChatMessageModel temp = new ChatMessageModel();
+                temp.setSenderID(rec);
+                temp.setSenderName(tm.getSenderName());
+                temp.setFilepath(filePath);
+                temp.setSimpleMessage(tm.getFileName());
+                temp.setIsSelf(true);
+
+                if (checkIfFileIsImage(tm.getFileName())) {
+                    Bitmap bm = ScalDownImage.decodeSampledBitmapFromResource(filePath, 80, 80);
+                    temp.setImage(bm);
+                    temp.setMessageType("IMG");
+                } else {
+                    Bitmap bm = BitmapFactory.decodeResource(activity.getResources(), R.drawable.filecompleteicon);
+                    temp.setImage(bm);
+                    temp.setMessageType("FLE");
+                    // ANY FILE
+                }
+                currList.add(temp);
+            }
+        } else {
+            Log.d("OK", "ther is no reciver, func:ConvertFileChunk");
+        }
+    }
+
+    public static void convertCapturedImageMessageTOChatMessageMode(CapturedImageMessage cim, String filePath, Hashtable<String, List<ChatMessageModel>> allStudentsLists) {
+        String[] recivers = cim.getRecivers();
+        List<ChatMessageModel> currList = null;
+        if (recivers != null) {
+            for (String rec : recivers) {
+                currList = allStudentsLists.get(rec);
+                if (currList == null) {
+                    currList = new ArrayList<ChatMessageModel>();
+                    allStudentsLists.put(rec, currList);
+                    Log.d("ERR", "No Chat List Found , func: sendutil.convertTextMess");
+                }
+
+                ChatMessageModel temp = new ChatMessageModel();
+                temp.setIsSelf(true);
+                temp.setSenderID(rec);
+                temp.setSenderName(cim.getSenderName());
+                temp.setFilepath(filePath);
+                temp.setSimpleMessage(cim.getFileName());
+                Bitmap bm1 = ScalDownImage.decodeSampledBitmapFromResource(filePath, 80, 80);
+                temp.setImage(bm1);
+                temp.setMessageType("IMG");
+            }
+        }
+    }
+
+    public static void reConnect(Client cl, UserLogin iam) throws IOException {
+
+        if ((cl != null) && (iam != null)) {
+            if (!cl.isConnected()) {
+                cl.reconnect();
+                cl.sendTCP(iam);
+                Log.d("con", "Try To Reconnect");
+                Log.d("con", "Iam " + iam.getUserID());
+                Log.d("con", "Iam " + iam.getUserType());
+
+            }
+        }
+
+    }
+
+
 
 
 
