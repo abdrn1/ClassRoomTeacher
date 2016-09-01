@@ -2,6 +2,7 @@ package com.abd.classroom1;
 
 import android.app.Activity;
 import android.app.Fragment;
+import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -11,13 +12,14 @@ import android.os.Environment;
 import android.provider.MediaStore;
 import android.util.Log;
 import android.view.LayoutInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
-import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ListView;
+import android.widget.PopupMenu;
 import android.widget.Toast;
 
 import com.esotericsoftware.kryonet.Client;
@@ -29,6 +31,8 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.List;
 
 import Decoder.BASE64Encoder;
@@ -56,6 +60,7 @@ public class MessageViewerFragment extends Fragment {
     private String mParam2;
 
     private OnFragmentInteractionListener mListener;
+    private Context  mycontext;
 
     private Client client;
     private UserLogin iam;
@@ -63,6 +68,7 @@ public class MessageViewerFragment extends Fragment {
     private ListView listview;
     private List<ChatMessageModel> l1;
     private MessagesListAdapter mLAdapter;
+    private String capturedImagePath="";
 
 
     public MessageViewerFragment() {
@@ -95,6 +101,7 @@ public class MessageViewerFragment extends Fragment {
     public void onActivityCreated(Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
         listview = (ListView) getActivity().findViewById(R.id.list_view_messages);
+
        /* l1 = new ArrayList();
 
         l1.add(new ChatMessageModel("ABD", "Hassan", "SIMPLE", "Hello There How?", true));
@@ -103,7 +110,7 @@ public class MessageViewerFragment extends Fragment {
         mLAdapter = new MessagesListAdapter(getActivity(), l1);
         listview.setAdapter(mLAdapter);
         final EditText inputMsg = (EditText)getActivity().findViewById(R.id.inputMsg);
-        Button btnsend = (Button) getActivity().findViewById(R.id.btnSend);
+        ImageButton btnsend = (ImageButton) getActivity().findViewById(R.id.btnSend);
         ImageButton btnsendfile = (ImageButton) getActivity().findViewById(R.id.btn_msgv_sendfile);
         ImageButton btnCaptureImage = (ImageButton) getActivity().findViewById(R.id.btn_msgv_captureimage);
         GeneralUtil.buttonEffect(btnsendfile);
@@ -115,18 +122,55 @@ public class MessageViewerFragment extends Fragment {
                 String msgType = (l1.get(position)).getMessageType();
                 Log.d("item", "The Itemclicked " + msgType);
                 if (msgType.equals("IMG")) {
-                    String fname = (l1.get(position)).getSimpleMessage();
-                    String savePath = Environment.getExternalStorageDirectory().getPath();
+                    String savePath;
+                   // String fname = (l1.get(position)).getSimpleMessage();
+                   // String savePath = Environment.getExternalStorageDirectory().getPath();
                     savePath = (l1.get(position)).getFilepath();
                     GeneralUtil.openImage(getActivity(), savePath);
                 }
 
             }
         });
+        listview.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
+            @Override
+            public boolean onItemLongClick(AdapterView<?> parent, View view, final int position, long id) {
+
+                PopupMenu popup = new PopupMenu(getActivity(),view);
+                popup.getMenuInflater().inflate(R.menu.monitor_item_display, popup.getMenu());
+                popup.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
+                    @Override
+                    public boolean onMenuItemClick(MenuItem item) {
+                        if (item.getItemId() == R.id.forward_Item) {
+
+                        }else if(item.getItemId() == R.id.show_on_monitor){
+                                showOnBoard(position);
+                        }else if(item.getItemId() == R.id.zoomIN){
+                            client.sendTCP(new CommandsMessages(1.2));
+                        }else if(item.getItemId() == R.id.zoomOUT){
+                            client.sendTCP(new CommandsMessages(0.9));
+                        }
+                        return true;
+                    }
+                });
+                popup.show();
+                return true;
+            }
+        });
 
         btnCaptureImage.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                new Thread(new Runnable() {
+                    @Override
+                    public void run() {
+                        if(SendUtil.checkConnection(client,iam)) {
+                           // takePicture();
+                            captureAndSavePicture();
+                        }else{
+                            Toast.makeText(getActivity(), "Connection Failed", Toast.LENGTH_SHORT).show();
+                        }
+                    }
+                }).start();
 
             }
         });
@@ -135,20 +179,31 @@ public class MessageViewerFragment extends Fragment {
         btnsend.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                String msg = inputMsg.getText().toString();
-                //String savepath = Environment.getExternalStorageDirectory().getPath();
-                // Toast.makeText(getActivity(), savepath, Toast.LENGTH_LONG).show();
-                if (!(msg.equals(""))) {
-                    sendTextMessage(msg);
-                    inputMsg.setText("");
+                if(SendUtil.checkConnection(client,iam)) {
+                    String msg = inputMsg.getText().toString();
+                    //String savepath = Environment.getExternalStorageDirectory().getPath();
+                    // Toast.makeText(getActivity(), savepath, Toast.LENGTH_LONG).show();
+                    if (!(msg.equals(""))) {
+                        sendTextMessage(msg);
+                        inputMsg.setText("");
+                    }
+                }else{
+                    Toast.makeText(getActivity(), "Connection Failed", Toast.LENGTH_SHORT).show();
+
                 }
             }
         });
         btnsendfile.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                sendFile();
-            }
+
+                        if(SendUtil.checkConnection(client,iam)) {
+                            sendFile();
+                        }else{
+                            Toast.makeText(getActivity(), "Connection Failed", Toast.LENGTH_SHORT).show();
+                        }
+                    }
+
         });
 
 
@@ -166,6 +221,45 @@ public class MessageViewerFragment extends Fragment {
         }
     }
 
+    public void captureAndSavePicture() {
+        String savepath = Environment.getExternalStorageDirectory().getPath();
+        String saveDirectoryPath = savepath + "/Classroom/pics/";
+        File folders = new File(saveDirectoryPath);
+
+        if (!(folders.exists())) {
+            folders.mkdirs();
+        }
+        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyymmddhhmmss");
+        String date = dateFormat.format(new Date());
+        String photoFile = "CaptureCMS_" + date + ".jpg";
+
+        capturedImagePath = saveDirectoryPath + photoFile;
+
+        File NewImageFile = new File(capturedImagePath);
+        try {
+            NewImageFile.createNewFile();
+        } catch (IOException e) {
+        }
+
+        Uri outputFileUri = Uri.fromFile(NewImageFile);
+
+        Intent cameraIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+        cameraIntent.putExtra(MediaStore.EXTRA_OUTPUT, outputFileUri);
+        startActivityForResult(cameraIntent, REQUEST_TAKE_PHOTO);
+
+    }
+
+    private void showOnBoard(int itemIndex){
+        ChatMessageModel chatMessageModel = this.l1.get(itemIndex);
+        ShowOnBoardMessage  sob= new ShowOnBoardMessage();
+        sob.setSenderID(iam.getUserID());
+        if(chatMessageModel.getMessageType().equals("IMG")){
+            sob.setFileName(chatMessageModel.getSimpleMessage());
+            sob.setMessageType("IMG");
+        }
+        client.sendTCP(sob);
+
+    }
     private void sendTextMessage(String txtmsg) {
         TextMeesage currTm = new TextMeesage();
         currTm.setSenderID(iam.getUserID());
@@ -196,13 +290,8 @@ public class MessageViewerFragment extends Fragment {
             final Uri uri = data.getData();
             String path = SendUtil.getRealPathFromURI(uri, getActivity());
             // String path = getRealPathFromURI(uri);
-            Log.d("INFO", path);
             Toast.makeText(getActivity(), "File: " + path +
                     ", Loadded Copletely", Toast.LENGTH_SHORT).show();
-
-            Log.d("INFO", iam.getUserName());
-            Log.d("INFO", iam.getUserType());
-
             FileChunkMessageV2 fblock = new FileChunkMessageV2();
             fblock.setSenderName(iam.getUserName());
             fblock.setSenderID(iam.getUserID());
@@ -211,8 +300,6 @@ public class MessageViewerFragment extends Fragment {
                 Log.d("INFO", "READ AND SEND FILE HERE");
                 SendUtil.readAndSendFile(getActivity(), path, client, iam, new String[]{reciverID}, FileChunkMessageV2.FILE);
                 addNewImageMessage(fblock, path, true);
-
-
             } catch (IOException e) {
                 Toast.makeText(getActivity(),
                         "Error While Sending file", Toast.LENGTH_SHORT).show();
@@ -221,11 +308,30 @@ public class MessageViewerFragment extends Fragment {
 
             }
         } else if (requestCode == REQUEST_TAKE_PHOTO && resultCode == Activity.RESULT_OK) {
-            Bundle extras = data.getExtras();
-            Bitmap imageBitmap = (Bitmap) extras.get("data");
-            sendCapturedPicToClients(imageBitmap);
+            //Bundle extras = data.getExtras();
+            //Bitmap imageBitmap = (Bitmap) extras.get("data");
+            //sendCapturedPicToClients(imageBitmap);
+            SendCapturedImageFile();
             Toast.makeText(getActivity(),
                     "Image Captured And Sent Completely", Toast.LENGTH_SHORT).show();
+
+        }
+    }
+
+    private void SendCapturedImageFile(){
+        FileChunkMessageV2 fblock = new FileChunkMessageV2();
+        fblock.setSenderName(iam.getUserName());
+        fblock.setSenderID(iam.getUserID());
+        fblock.setFileName(FilenameUtils.getName(capturedImagePath));
+        try {
+            Log.d("INFO", "READ AND SEND FILE HERE");
+            SendUtil.readAndSendFile(getActivity(), capturedImagePath, client, iam, new String[]{reciverID}, FileChunkMessageV2.FILE);
+            addNewImageMessage(fblock, capturedImagePath, true);
+        } catch (IOException e) {
+            Toast.makeText(getActivity(),
+                    "Error While Sending file", Toast.LENGTH_SHORT).show();
+            e.printStackTrace();
+
 
         }
     }
@@ -265,9 +371,13 @@ public class MessageViewerFragment extends Fragment {
     private void writeByteImageTofile(byte[] imageBytes, String imagefileName) {
         String savepath = Environment.getExternalStorageDirectory().getPath();
         savepath = savepath + "/Classroom/pics/";
+        File folders = new File(savepath);
         File destination = new File(savepath, imagefileName);
         FileOutputStream fo;
         try {
+            if (!(folders.exists())) {
+                folders.mkdirs();
+            }
             destination.createNewFile();
             fo = new FileOutputStream(destination);
             fo.write(imageBytes);

@@ -36,6 +36,7 @@ public class MonitorFragment extends Fragment {
     private int monitorsPerRow =2;
     private Client client;
 
+
     int defaultWidth = 30;
     int defaultHeight = 20;
     List<ScreenshotListener> listeners = new ArrayList<ScreenshotListener>();
@@ -95,6 +96,7 @@ public class MonitorFragment extends Fragment {
 
                     for (int j = 0; j < monitorsPerRow && count !=noOfMonitors; j++) {
                         MonitorView mv = new MonitorView(getFragmentManager(), getActivity().getApplicationContext(), iam.getUserID(), receivers[count], client);
+                        mv.iam = iam;
                         MonitorFragment.this.addScreenshotListener(mv);
                         linearLayout.addView(mv.getView());
                         Log.i("ttt", "monitor created ... " + count);

@@ -131,25 +131,6 @@ public class SendUtil {
         }
     }
 
-    public static void reConnect(Client cl, UserLogin iam) throws IOException {
-
-        if ((cl != null) && (iam != null)) {
-            if (!cl.isConnected()) {
-                cl.reconnect();
-                cl.sendTCP(iam);
-                Log.d("con", "Try To Reconnect");
-                Log.d("con", "Iam " + iam.getUserID());
-                Log.d("con", "Iam " + iam.getUserType());
-
-            }
-        }
-
-    }
-
-
-
-
-
     public static boolean checkIfFileIsImage(String fileName) {
 
         String ext = null;
@@ -187,6 +168,37 @@ public class SendUtil {
             cursor.close();
         }
         return result;
+    }
+
+    public static boolean checkConnection(Client cl, UserLogin iam) {
+        if (cl.isConnected()) {
+            return true;
+        } else {
+            try {
+                SendUtil.reConnect(cl, iam);
+                return  true;
+            } catch (Exception ex1) {
+                return false;
+
+            }
+        }
+    }
+
+
+
+    public static void reConnect(Client cl, UserLogin iam) throws Exception {
+
+        if ((cl != null) && (iam != null)) {
+            if (!cl.isConnected()) {
+                cl.reconnect();
+                cl.sendTCP(iam);
+                Log.d("con", "Try To Reconnect");
+                Log.d("con", "Iam " + iam.getUserID());
+                Log.d("con", "Iam " + iam.getUserType());
+
+            }
+        }
+
     }
 
 

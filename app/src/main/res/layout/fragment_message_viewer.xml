@@ -18,7 +18,7 @@
     <LinearLayout
         android:id="@+id/llMsgCompose"
         android:layout_width="fill_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="50dp"
         android:background="@color/white"
         android:orientation="horizontal"
         android:weightSum="3" >
@@ -33,12 +33,17 @@
             android:paddingRight="6dp"
             android:textColor="@color/text_msg_input" />
 
-        <Button
+
+        <ImageButton
             android:id="@+id/btnSend"
             android:layout_width="50dp"
-            android:layout_height="wrap_content"
-            android:background="@color/bg_btn_join"
-            android:text="@string/btn_send"
+            android:layout_height="fill_parent"
+            android:layout_gravity="right"
+            android:layout_marginLeft="5dp"
+            android:layout_marginStart="5dp"
+            android:background="@drawable/circle_shape"
+            android:contentDescription="send text message"
+            android:src="@drawable/l1send"
             android:textColor="@color/white" />
 
         <ImageButton

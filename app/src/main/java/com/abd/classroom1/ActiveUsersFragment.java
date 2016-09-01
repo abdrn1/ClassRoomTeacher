@@ -5,6 +5,7 @@ import android.app.Fragment;
 import android.content.Intent;
 import android.database.Cursor;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
@@ -67,6 +68,7 @@ public class ActiveUsersFragment extends Fragment {
     private String mParam2;
     private String mCurrentPhotoPath;
     private OnFragmentInteractionListener mListener;
+    private String capturedImagePath="";
 
     public ActiveUsersFragment() {
         // Required empty public constructor
@@ -162,18 +164,26 @@ public class ActiveUsersFragment extends Fragment {
         sendfile.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
-                intent.setType("file/*");
-                startActivityForResult(intent, FILE_SELECT_CODE);
-                Toast.makeText(getActivity(),
-                        "INfo Message", Toast.LENGTH_LONG).show();
+                if(SendUtil.checkConnection(client,iam)) {
+                    Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+                    intent.setType("file/*");
+                    startActivityForResult(intent, FILE_SELECT_CODE);
+                    Toast.makeText(getActivity(),
+                            "INfo Message", Toast.LENGTH_LONG).show();
+                }else{
+                    Toast.makeText(getActivity(), "Connection Failed", Toast.LENGTH_SHORT);
+                }
             }
         });
         captureImage.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                // captureAndSavePicture();
-                takePicture();
+                if(SendUtil.checkConnection(client,iam)) {
+                   // takePicture();
+                    captureAndSavePicture();
+                }else{
+                    Toast.makeText(getActivity(), "Connection Failed", Toast.LENGTH_SHORT);
+                }
 
             }
         });
@@ -181,7 +191,7 @@ public class ActiveUsersFragment extends Fragment {
         btnsend.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if (client.isConnected()) {
+                if (SendUtil.checkConnection(client,iam)) {
                     String tempMsg = inputMsg.getText().toString();
                     //l1.add(new ClientModel("5", "ZAKI", R.drawable.a3));
                     //clientListAdapter.notifyDataSetChanged();
@@ -198,15 +208,23 @@ public class ActiveUsersFragment extends Fragment {
         locksend.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                Toast.makeText(getActivity().getApplicationContext(), "lock sent",Toast.LENGTH_LONG).show();
-                sendLockMessage(true);
+                if (SendUtil.checkConnection(client,iam)) {
+                    Toast.makeText(getActivity().getApplicationContext(), "lock sent", Toast.LENGTH_LONG).show();
+                    sendLockMessage(true);
+                }else {
+                    Toast.makeText(getActivity().getApplicationContext(), "your disconnected", Toast.LENGTH_SHORT).show();
+                }
             }
         });
         unlocksend.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                Toast.makeText(getActivity().getApplicationContext(), "lock sent", Toast.LENGTH_LONG).show();
-                sendLockMessage(false);
+                if (SendUtil.checkConnection(client,iam)) {
+                    Toast.makeText(getActivity().getApplicationContext(), "lock sent", Toast.LENGTH_LONG).show();
+                    sendLockMessage(false);
+                }else {
+                    Toast.makeText(getActivity().getApplicationContext(), "your disconnected", Toast.LENGTH_SHORT).show();
+                }
             }
         });
 
@@ -215,18 +233,27 @@ public class ActiveUsersFragment extends Fragment {
         btnStartExam.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
-                intent.setType("file/xml");
-                startActivityForResult(intent, EXAM_SELECT_CODE);
-                Toast.makeText(getActivity(),
-                        "Select XML files Only", Toast.LENGTH_LONG).show();
+                if (SendUtil.checkConnection(client, iam)) {
+                    Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+                    intent.setType("file/xml");
+                    startActivityForResult(intent, EXAM_SELECT_CODE);
+                    Toast.makeText(getActivity(),
+                            "Select XML files Only", Toast.LENGTH_LONG).show();
+                } else {
+                    Toast.makeText(getActivity().getApplicationContext(), "your disconnected", Toast.LENGTH_SHORT).show();
+                }
             }
+
         });
 
         monitorBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                mListener.showMonitor(getSelectedRecivers());
+                if (SendUtil.checkConnection(client, iam)) {
+                    mListener.showMonitor(getSelectedRecivers());
+                }else {
+                    Toast.makeText(getActivity().getApplicationContext(), "your disconnected", Toast.LENGTH_SHORT).show();
+                }
             }
         });
 
@@ -312,9 +339,11 @@ public class ActiveUsersFragment extends Fragment {
         }else if(resultCode == MONITOR_CODE && resultCode == Activity.RESULT_OK){
 
         } else if (requestCode == REQUEST_TAKE_PHOTO && resultCode == Activity.RESULT_OK) {
-            Bundle extras = data.getExtras();
-            Bitmap imageBitmap = (Bitmap) extras.get("data");
-            sendCapturedPicToClients(imageBitmap);
+           // Bundle extras = data.getExtras();
+           // Bitmap imageBitmap = (Bitmap) extras.get("data");
+            //sendCapturedPicToClients(imageBitmap);
+            //sendCapturedPicFileToClients(capturedImagePath);
+            SendCauptureImageAsFile(capturedImagePath);
             Toast.makeText(getActivity(),
                     "Image Captured And Sent Completely", Toast.LENGTH_SHORT).show();
 
@@ -322,10 +351,31 @@ public class ActiveUsersFragment extends Fragment {
 
     }
 
+    private void SendCauptureImageAsFile(String cappath){
+        FileChunkMessageV2 fblock = new FileChunkMessageV2();
+        fblock.setSenderName(iam.getUserName());
+        fblock.setSenderID(iam.getUserID());
+        fblock.setFileName(FilenameUtils.getName(cappath));
+        fblock.setRecivers(getSelectedRecivers());
+        try {
+            Log.d("INFO", "READ AND SEND FILE HERE");
+            SendUtil.readAndSendFile(getActivity(), cappath, client, iam, getSelectedRecivers(), FileChunkMessageV2.FILE);
+            Log.d("OK", "Convert FileTO MODEl");
+            SendUtil.convertFileChunkToChatMessageModl(getActivity(), cappath, fblock, allStudentsLists);
+
+        } catch (IOException e) {
+            Toast.makeText(getActivity(),
+                    "Error While Sending file", Toast.LENGTH_SHORT).show();
+            e.printStackTrace();
+
+
+        }
+    }
+
     private void sendCapturedPicToClients(Bitmap bm) {
         String ciFileName = System.currentTimeMillis() + ".jpg";
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        bm.compress(Bitmap.CompressFormat.JPEG, 40, baos);
+        bm.compress(Bitmap.CompressFormat.JPEG, 85, baos);
         byte[] imageBytes = baos.toByteArray();
         BASE64Encoder encoder = new BASE64Encoder();
         String encodedImage = encoder.encode(imageBytes);
@@ -350,6 +400,8 @@ public class ActiveUsersFragment extends Fragment {
         savepath = savepath + "/Classroom/pics/" + cim.getFileName();
         SendUtil.convertCapturedImageMessageTOChatMessageMode(cim, savepath, allStudentsLists);
     }
+
+
 
     private void writeByteImageTofile(byte[] imageBytes, String imagefileName) {
         String savepath = Environment.getExternalStorageDirectory().getPath();
@@ -467,11 +519,11 @@ public class ActiveUsersFragment extends Fragment {
         }
         SimpleDateFormat dateFormat = new SimpleDateFormat("yyyymmddhhmmss");
         String date = dateFormat.format(new Date());
-        String photoFile = "CMS_" + date + ".jpg";
+        String photoFile = "CaptureCMS_" + date + ".jpg";
 
-        String FilePath = saveDirectoryPath + photoFile;
+         capturedImagePath = saveDirectoryPath + photoFile;
 
-        File NewImageFile = new File(FilePath);
+        File NewImageFile = new File(capturedImagePath);
         try {
             NewImageFile.createNewFile();
         } catch (IOException e) {

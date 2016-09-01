@@ -22,12 +22,18 @@
     <string name="finish_exam">Finish Exam</string>
     <string name="show_exam_result">Exam Results</string>
     <string name="active_users">Students</string>
+    <string name="connectionfail">Connection Failed</string>
 
     <string-array name="client_status">
         <item>On Line</item>
         <item>Offline</item>
     </string-array>
     <string name="title_activity_monitor">MonitorActivity</string>
+    <!-- new values here -->
+    <string name="forward_item">Forward Item</string>
+    <string name="show_on_monitor">Monitor Display</string>
+    <string name="zoom_in">Zoom In</string>
+    <string name="zoom_out">Zoom Out</string>
 
-
+    <string name="exit_app">sign out</string>
 </resources>

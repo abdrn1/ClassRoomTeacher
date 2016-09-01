@@ -42,6 +42,7 @@ public class MonitorView implements MonitorFragment.ScreenshotListener {
     ImageView monitorView;
     SingleMonitorFragment singleMonitorFragment;
     Bitmap bm;
+    UserLogin iam;
 
     public MonitorView(final FragmentManager fm, final Context context, String senderId, final String receiverId, final Client client){
         this.fm = fm;
@@ -49,7 +50,6 @@ public class MonitorView implements MonitorFragment.ScreenshotListener {
         this.senderId = senderId;
         this.receiverId = receiverId;
         this.client = client;
-
         monitorView = new ImageView(context);
         monitorView.setScaleType(ImageView.ScaleType.FIT_CENTER);
         monitorView.setImageResource(R.drawable.lock);
@@ -77,10 +77,11 @@ public class MonitorView implements MonitorFragment.ScreenshotListener {
                         } else if (item.getItemId() == R.id.updateMonitor) {
                             update();
                         } else if (item.getItemId() == R.id.showOfMonitor) {
+                            Log.d("MON","Show On monitor ");
 
                             if (bm != null) {
                                 ByteArrayOutputStream baos = new ByteArrayOutputStream();
-                                bm.compress(Bitmap.CompressFormat.JPEG, 100, baos);
+                                bm.compress(Bitmap.CompressFormat.JPEG, 80, baos);
                                 byte[] imageBytes = baos.toByteArray();
 
                                 BASE64Encoder encoder = new BASE64Encoder();
@@ -89,12 +90,20 @@ public class MonitorView implements MonitorFragment.ScreenshotListener {
                                 try {
                                     baos.close();
                                 } catch (IOException e) {
+                                    Log.d("MON","error here , func: show on board ");
                                     e.printStackTrace();
                                 }
-                                BoardScreenshotMessage bsm = new BoardScreenshotMessage();
+                                final BoardScreenshotMessage bsm = new BoardScreenshotMessage();
                                 bsm.setReceiverId(receiverId);
                                 bsm.setBase64Photo(encodedImage);
-                                client.sendTCP(bsm);
+                                Log.d("MON","SEND to show on board ");
+                                if(SendUtil.checkConnection(client,iam)) {
+                                    client.sendTCP(bsm);
+                                }else{
+                                    Log.d("MON","Connection Failed ");
+                                }
+
+
                             }
                         }
                         return true;
@@ -140,6 +149,7 @@ public class MonitorView implements MonitorFragment.ScreenshotListener {
                 bis.close();
 
             } catch (IOException e) {
+                Log.d("ERR","error here , func: screenshotReceived() ");
                 e.printStackTrace();
             }
         }

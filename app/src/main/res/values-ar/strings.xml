@@ -27,6 +27,13 @@
         <item>متوفر</item>
         <item>غير متوفر</item>
     </string-array>
+    <string name="title_activity_monitor">MonitorActivity</string>
+    <!-- new values here -->
+    <string name="forward_item">إعادة توجيه</string>
+    <string name="show_on_monitor">عرض على الشاشة</string>
+    <string name="zoom_in">تكبير</string>
+    <string name="zoom_out">تصغير</string>
 
+    <string name="exit_app">تسجيل خروج</string>
 
 </resources>

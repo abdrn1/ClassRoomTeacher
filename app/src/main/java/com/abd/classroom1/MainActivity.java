@@ -2,8 +2,12 @@ package com.abd.classroom1;
 
 import android.app.FragmentManager;
 import android.app.FragmentTransaction;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Environment;
+import android.os.Handler;
 import android.os.StrictMode;
 import android.support.design.widget.NavigationView;
 import android.support.v4.view.GravityCompat;
@@ -21,12 +25,17 @@ import com.esotericsoftware.kryonet.Client;
 import com.esotericsoftware.kryonet.Connection;
 import com.esotericsoftware.kryonet.Listener;
 
+import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Hashtable;
 import java.util.List;
+
+import Decoder.BASE64Decoder;
 
 public class MainActivity extends AppCompatActivity
         implements NavigationView.OnNavigationItemSelectedListener,
@@ -54,13 +63,15 @@ public class MainActivity extends AppCompatActivity
     MonitorFragment monitorFragment;
     String[] clientStatus;
     ///
-    private UserLogin iam;
+    private UserLogin iam =null;
     private List<ChatMessageModel> chatMessageModelList;
     private List<ClientModel> clientsList;
     private List<ExamResultModel> examResultModels;
     private Hashtable<String, List<ChatMessageModel>> allStudentsLists;
     private Thread checkServer;
     private int activeFragmentID = 1;
+    private Hashtable<RecivedFileKey, BuildFileFromBytesV2> recivedFilesTable;
+    private Handler handler;
 
 
     ///// end note
@@ -81,6 +92,7 @@ public class MainActivity extends AppCompatActivity
         aa.setExamMark(50);
         chatMessageModelList = Collections.synchronizedList(new ArrayList<ChatMessageModel>());
         allStudentsLists = new Hashtable<>();
+        recivedFilesTable = new Hashtable<>();
         examResultModels = new ArrayList<>(); // for saving exam result
         examResultModels.add(aa);
         clientsList = new ArrayList<>();// for saving active clients
@@ -104,6 +116,8 @@ public class MainActivity extends AppCompatActivity
         prepareConnection();
         checkServer = new Thread(this);
         checkServer.start();
+
+        handler = new Handler();
 
 
         //open the connection for the first TIME
@@ -218,19 +232,29 @@ public class MainActivity extends AppCompatActivity
         kryo.register(ScreenshotMessage.class);
         kryo.register(BoardScreenshotMessage.class);
         kryo.register(CapturedImageMessage.class); // class to send captured image
+        kryo.register(ShowOnBoardMessage.class);
+        kryo.register(CommandsMessages.class);
     }
 
     public boolean openConnection() throws Exception {
         client.start();
         InetAddress address = client.discoverHost(54777, 5000);
         client.connect(5000, address, 9995, 54777);
-        client.setKeepAliveUDP(8000);
+        client.setKeepAliveUDP(7000);
+        client.setKeepAliveTCP(7000);
+        client.setTimeout(50000);
 
         client.addListener(new Listener() {
             public void received(Connection c, Object ob) {
                 if (ob instanceof SimpleTextMessage) {
                     Log.d("SIMPLE", "New Simple Message Recived");
-                    dealWithSimpleTextMessage((SimpleTextMessage) ob);
+                    SimpleTextMessage stm = (SimpleTextMessage) ob;
+                    if (stm.getMessageType().equals("TXT")){
+                        dealWithSimpleTextMessage(stm);
+                    }else if (stm.getMessageType().equals("OK")){
+                       dealWithLikeMessage(stm);
+
+                    }
 
                 } else if (ob instanceof UserLogin) {
                     if (!((UserLogin) ob).isLogin_Succesful()) {
@@ -238,7 +262,7 @@ public class MainActivity extends AppCompatActivity
                         return;
                     }
                     Log.d("INFO", "New User Login Packet");
-                    if (((UserLogin) ob).getUserType().equals("TEACHER")) {
+                    if (((UserLogin) ob).getUserType().equals("TEACHER") && (iam ==null)) {
                         System.out.println("Login Message Recived");
                         if (((UserLogin) ob).isLogin_Succesful()) {
                             setSuccessfulLogin(((UserLogin) ob));
@@ -259,6 +283,7 @@ public class MainActivity extends AppCompatActivity
                             clientsList.add(tempcl);
                            /* clientsList.add(new ClientModel("27", "Hassan", R.drawable.unknown));
                             clientsList.add(new ClientModel("28", "Hassan", R.drawable.unknown));*/
+                            iam = (UserLogin) ob;
                             activeusersfragment.setClient(client);
                             activeusersfragment.setUserlogin((UserLogin) ob);
                             activeusersfragment.setActiveUsersList(clientsList);
@@ -272,7 +297,7 @@ public class MainActivity extends AppCompatActivity
                         }
                     } else if (((UserLogin) ob).getUserType().equals("STUDENT")) {
                         addNewActiveClient((UserLogin) ob);
-                        if (activeFragmentID == ACTIVEUSERSFRAG) {
+                        if (activeFragmentID == ACTIVEUSERSFRAG && activeusersfragment !=null ) {
 
                             activeusersfragment.setActiveUsersList(clientsList);
 
@@ -290,6 +315,29 @@ public class MainActivity extends AppCompatActivity
                 }else if(ob instanceof ScreenshotMessage){
                     if(monitorFragment != null)
                         monitorFragment.screenshotReceived((ScreenshotMessage) ob);
+                }else if (ob instanceof FileChunkMessageV2) {
+                    if (((FileChunkMessageV2) ob).getFiletype().equals(FileChunkMessageV2.FILE)) {
+                        Log.d("FILE", "New File Recived");
+                       dealWithFileMessage(((FileChunkMessageV2) ob));
+                    }
+
+                }else if (ob instanceof CapturedImageMessage){
+
+                    try {
+                        dealWithCapturedImageMessage((CapturedImageMessage) ob);
+                    }catch (Exception ex1){
+                        handler.post(new Runnable() {
+                            @Override
+                            public void run() {
+                                Toast.makeText(getApplicationContext(), "Failed to Load Captured Image", Toast.LENGTH_SHORT).show();
+                            }
+                        });
+
+                        ex1.printStackTrace();
+                    }
+
+
+
                 }
             }
         });
@@ -299,7 +347,116 @@ public class MainActivity extends AppCompatActivity
 
     }
 
+    private synchronized  void dealWithCapturedImageMessage(CapturedImageMessage cim) throws Exception {
 
+        Bitmap bm;
+        ChatMessageModel chm = new ChatMessageModel(cim.getSenderName(),"","IMG","IMGE",false);
+        BASE64Decoder decoder = new BASE64Decoder();
+        byte[] imageBytes = decoder.decodeBuffer(cim.getPicture());
+        Log.d("DECODE","Phase 1");
+        ByteArrayInputStream bis = new ByteArrayInputStream(imageBytes);
+        bm = BitmapFactory.decodeStream(bis);
+        Log.d("DECODE","Phase 2");
+        chm.setImage(bm);
+        chm.setSimpleMessage(cim.getFileName());
+        chm.setMessageType("IMG");// Necessary  to display imagechatMessages.add(chm);
+        String savepath = Environment.getExternalStorageDirectory().getPath();
+        savepath =savepath + "/Classroom/pics/"+cim.getFileName();
+        chm.setFilepath(savepath);
+        allStudentsLists.get(cim.getSenderID()).add(chm);
+        Log.d("DECODE","Phase 3");
+        writeByteImageTofile(imageBytes,cim.getFileName());
+        if ((activeFragmentID == MESSSAGEVIWERFRAG) && (messageViewerFragment!=null)) {
+            messageViewerFragment.updateAdapterchanges();
+        }else{
+            increasetUnreadMessageCounter(cim.getSenderID());
+            if (activeusersfragment != null) {
+                activeusersfragment.updateActiveListContent();
+            }
+        }
+
+    }
+
+    private void writeByteImageTofile(byte[] imageBytes,String imagefileName) throws Exception{
+        String savepath = Environment.getExternalStorageDirectory().getPath();
+        savepath =savepath + "/Classroom/pics/";
+        File destination = new File(savepath,imagefileName);
+        FileOutputStream fo;
+
+            destination.createNewFile();
+            fo = new FileOutputStream(destination);
+            fo.write(imageBytes);
+            fo.close();
+            //Toast.makeText(getApplicationContext(), "Write IMGE DONEe", Toast.LENGTH_SHORT).show();
+
+    }
+
+
+    public synchronized void dealWithFileMessage(FileChunkMessageV2 fcmv2) {
+        BuildFileFromBytesV2 buildfromBytesV2=null;
+        ChatMessageModel icm;
+        try {
+
+            String savepath = Environment.getExternalStorageDirectory().getPath();
+            Log.d("INFO", "File Chunk Recived");
+            //recive the first packet from new file
+            if (fcmv2.getChunkCounter() == 1L) {
+              //  final FileChunkMessageV2 tfcmv2 = fcmv2;
+                Log.d("INFO PAth=", savepath + "/Classrom");
+                icm = new ChatMessageModel();
+                icm.setSenderID(fcmv2.getSenderID());
+                icm.setSenderName(fcmv2.getSenderName());
+                icm.setFilepath(savepath + "/Classrom/"+fcmv2.getFileName());
+                icm.setIsSelf(false);
+                buildfromBytesV2 = new BuildFileFromBytesV2(savepath + "/Classrom/");
+                buildfromBytesV2.setChatMessageModel(icm);
+                buildfromBytesV2.constructFile(fcmv2);
+                recivedFilesTable.put(new RecivedFileKey(fcmv2.senderID, fcmv2.getFileName()), buildfromBytesV2);
+
+            } else {
+                BuildFileFromBytesV2 bffb = recivedFilesTable.get(new RecivedFileKey(fcmv2.getSenderID(), fcmv2.getFileName()));
+                if (bffb != null) {
+
+                    Log.d("INFO", "Current File Chunk: " + Long.toString(fcmv2.getChunkCounter()));
+                    if (bffb.constructFile(fcmv2)) {
+                        recivedFilesTable.remove(new RecivedFileKey(fcmv2.getSenderID(), fcmv2.getFileName()));
+                        icm = bffb.getChatMessageModel();
+                        if (SendUtil.checkIfFileIsImage(fcmv2.getFileName())) {
+                            // Bitmap bm = BitmapFactory.decodeFile(savepath + "/Classrom/" + fcmv2.getFileName());
+                            String tempImagePath = savepath + "/Classrom/" + fcmv2.getFileName();
+                            // Bitmap bm = ScalingUtilities.fitImageDecoder(tempImagePath,mDstWidth,mDstHeight);
+                            Bitmap bm = ScalDownImage.decodeSampledBitmapFromResource(tempImagePath, 80, 80);
+                            icm.setImage(bm);
+                            icm.setMessageType("IMG");
+                            icm.setSimpleMessage(fcmv2.getFileName());
+                        } else {
+                            Bitmap bm = BitmapFactory.decodeResource(getResources(), R.drawable.filecompleteicon);
+                            icm.setImage(bm);
+                            icm.setSimpleMessage(fcmv2.getFileName());
+                            icm.setMessageType("FLE");
+                        }
+
+                        allStudentsLists.get(fcmv2.getSenderID()).add(icm);
+                        if((activeFragmentID==MESSSAGEVIWERFRAG) && (messageViewerFragment!=null) ){
+                            messageViewerFragment.updateAdapterchanges();
+
+                        }else{
+                            increasetUnreadMessageCounter(icm.getSenderID());
+                            if (activeusersfragment != null) {
+                                activeusersfragment.updateActiveListContent();
+                            }
+                        }
+                        Log.d("INFO", "EOF, FILE REcived Completely");
+                    }
+                    /// SendUtil.sendFileChunkToRecivers(clientTable, fcmv2, tRecivers);
+                }
+            }
+        } catch (Exception ex) {
+            recivedFilesTable.remove(new RecivedFileKey(fcmv2.getSenderID(), fcmv2.getFileName()));
+            Toast.makeText(getApplicationContext(), "Error While Recive file from Student: "+fcmv2.getSenderName()+", "+fcmv2.getSenderID(), Toast.LENGTH_SHORT).show();
+            ex.printStackTrace();
+        }
+    }
 
     public void dealWithExamResultMessage(ExamResultMessage erm) {
         ExamResultModel temp = new ExamResultModel();
@@ -324,6 +481,36 @@ public class MainActivity extends AppCompatActivity
 
     }
 
+    private void dealWithLikeMessage(SimpleTextMessage likem){
+        if (likem.getMessageType().equals("OK")) {
+            ChatMessageModel chm = new ChatMessageModel(likem.getSenderName(), "", "OK", likem.getTextMessage(), false);
+            chm.setSenderID(likem.getSenderID());
+            chatMessageModelList = allStudentsLists.get(likem.getSenderID());
+            if (chatMessageModelList != null) {
+                chatMessageModelList.add(chm);
+            }
+
+            // unread counter
+
+            if ((activeFragmentID == MESSSAGEVIWERFRAG) && (messageViewerFragment != null)) {
+                Log.d("info", " Display on Message Viewer");
+
+                // messageViewerFragment.setMessagesList(chatMessageModelList);
+                //messageViewerFragment.addNewMessage(simplem,false);
+                messageViewerFragment.updateMessageListContent();
+
+            } else {
+                Log.d("info", "Display Message On Counter Only");
+                increasetUnreadMessageCounter(likem.getSenderID());
+                if (activeusersfragment != null) {
+                    activeusersfragment.updateActiveListContent();
+                }
+
+            }
+
+        }
+    }
+
     public void dealWithSimpleTextMessage(SimpleTextMessage simplem) {
         if (simplem.getMessageType().equals("TXT")) {
             ChatMessageModel chm = new ChatMessageModel(simplem.getSenderName(), "", "TXT", simplem.getTextMessage(), false);
@@ -331,8 +518,6 @@ public class MainActivity extends AppCompatActivity
             chatMessageModelList = allStudentsLists.get(simplem.getSenderID());
             if (chatMessageModelList != null) {
                 chatMessageModelList.add(chm);
-            } else {
-                Toast.makeText(getApplicationContext(), "No Chat List For This Sender", Toast.LENGTH_SHORT).show();
             }
 
         }
@@ -360,7 +545,7 @@ public class MainActivity extends AppCompatActivity
         ClientModel cm = findCurrentUser(currSm.getUserID());
         cm.setLastStatus(clientStatus[currSm.getStatus()]);
         cm.setStatus(currSm.getStatus());
-        if (activeFragmentID == 2 && activeusersfragment != null) {
+        if (activeFragmentID == ACTIVEUSERSFRAG && activeusersfragment != null) {
             activeusersfragment.updateActiveListContent();
         }
 
@@ -393,9 +578,10 @@ public class MainActivity extends AppCompatActivity
                 ul1.setClientImage(resourceID);
                 return true;
             }
+
         }
 
-        return false;
+        return  false;
     }
 
     private boolean ifUserExistUpdate(String uID) {
@@ -420,11 +606,13 @@ public class MainActivity extends AppCompatActivity
 
     private void increasetUnreadMessageCounter(String userId) {
         ClientModel temp = findCurrentUser(userId);
+        if (temp !=null)
         temp.unreadMsgCounter++;
     }
 
     private void resetUnreadMessageCounter(String userId) {
         ClientModel temp = findCurrentUser(userId);
+        if (temp !=null)
         temp.unreadMsgCounter = 0;
     }
 
@@ -533,7 +721,7 @@ public class MainActivity extends AppCompatActivity
         try {
 
             SendUtil.reConnect(client, iam);
-        } catch (IOException e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }

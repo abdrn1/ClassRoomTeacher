@@ -75,6 +75,9 @@ public class MessagesListAdapter extends BaseAdapter {
         if(m.getMessageType().equals("IMG") ||m.getMessageType().equals("FLE")) {
             img.setImageBitmap(m.getImage());
         }
+        if(m.getMessageType().equals("OK")){
+            img.setImageResource(R.drawable.l1lik2);
+        }
 
         return convertView;
     }

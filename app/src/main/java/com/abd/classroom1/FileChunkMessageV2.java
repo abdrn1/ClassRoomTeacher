@@ -7,6 +7,7 @@ public class FileChunkMessageV2 {
 
     final static String FILE = "FILE";
     final static String EXAM = "EXAM";
+    final static String CAPTURE = "CAPTURE";
 
     byte[] chunk; // chunk of bytes from the file;
     String senderID;

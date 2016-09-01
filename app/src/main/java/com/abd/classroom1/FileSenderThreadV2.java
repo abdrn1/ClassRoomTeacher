@@ -11,7 +11,7 @@ import java.io.RandomAccessFile;
 /**
  * Created by Abd on 3/10/2016.
  */
-public class FileSenderThreadV2  extends Thread {
+public class FileSenderThreadV2 extends Thread {
     RandomAccessFile aFile = null;
     Client client;
     long chunkcounter = 0L;
