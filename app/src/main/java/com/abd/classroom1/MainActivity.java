@@ -2,8 +2,11 @@ package com.abd.classroom1;
 
 import android.app.FragmentManager;
 import android.app.FragmentTransaction;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Environment;
 import android.os.StrictMode;
 import android.support.design.widget.NavigationView;
 import android.support.v4.view.GravityCompat;
@@ -59,6 +62,7 @@ public class MainActivity extends AppCompatActivity
     private List<ClientModel> clientsList;
     private List<ExamResultModel> examResultModels;
     private Hashtable<String, List<ChatMessageModel>> allStudentsLists;
+    private Hashtable<RecivedFileKey, BuildFileFromBytesV2> recivedFilesTable;
     private Thread checkServer;
     private int activeFragmentID = 1;
 
@@ -81,6 +85,7 @@ public class MainActivity extends AppCompatActivity
         aa.setExamMark(50);
         chatMessageModelList = Collections.synchronizedList(new ArrayList<ChatMessageModel>());
         allStudentsLists = new Hashtable<>();
+        recivedFilesTable = new Hashtable<>();
         examResultModels = new ArrayList<>(); // for saving exam result
         examResultModels.add(aa);
         clientsList = new ArrayList<>();// for saving active clients
@@ -287,9 +292,14 @@ public class MainActivity extends AppCompatActivity
                 } else if (ob instanceof ExamResultMessage) {
                     Log.d("INFO", "Exam Result Message Recived");
                     dealWithExamResultMessage((ExamResultMessage) ob);
-                }else if(ob instanceof ScreenshotMessage){
-                    if(monitorFragment != null)
+                } else if (ob instanceof ScreenshotMessage) {
+                    if (monitorFragment != null)
                         monitorFragment.screenshotReceived((ScreenshotMessage) ob);
+                } else if (ob instanceof FileChunkMessageV2) {
+                    if (((FileChunkMessageV2) ob).getFiletype().equals(FileChunkMessageV2.FILE)) {
+                        Log.d("FILE", "New File Recived");
+                        dealWithFileMessage(((FileChunkMessageV2) ob));
+                    }
                 }
             }
         });
@@ -297,6 +307,72 @@ public class MainActivity extends AppCompatActivity
         return true;
 
 
+    }
+
+    public synchronized void dealWithFileMessage(FileChunkMessageV2 fcmv2) {
+        BuildFileFromBytesV2 buildfromBytesV2=null;
+        ChatMessageModel icm;
+        try {
+
+            String savepath = Environment.getExternalStorageDirectory().getPath();
+            Log.d("INFO", "File Chunk Recived");
+            //recive the first packet from new file
+            if (fcmv2.getChunkCounter() == 1L) {
+                //  final FileChunkMessageV2 tfcmv2 = fcmv2;
+                Log.d("INFO PAth=", savepath + "/Classrom");
+                icm = new ChatMessageModel();
+                icm.setSenderID(fcmv2.getSenderID());
+                icm.setSenderName(fcmv2.getSenderName());
+                icm.setFilepath(savepath + "/Classrom/"+fcmv2.getFileName());
+                icm.setIsSelf(false);
+                buildfromBytesV2 = new BuildFileFromBytesV2(savepath + "/Classrom/");
+                buildfromBytesV2.setChatMessageModel(icm);
+                buildfromBytesV2.constructFile(fcmv2);
+                recivedFilesTable.put(new RecivedFileKey(fcmv2.senderID, fcmv2.getFileName()), buildfromBytesV2);
+
+            } else {
+                BuildFileFromBytesV2 bffb = recivedFilesTable.get(new RecivedFileKey(fcmv2.getSenderID(), fcmv2.getFileName()));
+                if (bffb != null) {
+
+                    Log.d("INFO", "Current File Chunk: " + Long.toString(fcmv2.getChunkCounter()));
+                    if (bffb.constructFile(fcmv2)) {
+                        recivedFilesTable.remove(new RecivedFileKey(fcmv2.getSenderID(), fcmv2.getFileName()));
+                        icm = bffb.getChatMessageModel();
+                        if (SendUtil.checkIfFileIsImage(fcmv2.getFileName())) {
+                            // Bitmap bm = BitmapFactory.decodeFile(savepath + "/Classrom/" + fcmv2.getFileName());
+                            String tempImagePath = savepath + "/Classrom/" + fcmv2.getFileName();
+                            // Bitmap bm = ScalingUtilities.fitImageDecoder(tempImagePath,mDstWidth,mDstHeight);
+                            Bitmap bm = ScalDownImage.decodeSampledBitmapFromResource(tempImagePath, 80, 80);
+                            icm.setImage(bm);
+                            icm.setMessageType("IMG");
+                            icm.setSimpleMessage(fcmv2.getFileName());
+                        } else {
+                            Bitmap bm = BitmapFactory.decodeResource(getResources(), R.drawable.filecompleteicon);
+                            icm.setImage(bm);
+                            icm.setSimpleMessage(fcmv2.getFileName());
+                            icm.setMessageType("FLE");
+                        }
+
+                        allStudentsLists.get(fcmv2.getSenderID()).add(icm);
+                        if((activeFragmentID==MESSSAGEVIWERFRAG) && (messageViewerFragment!=null) ){
+                            messageViewerFragment.updateAdapterchanges();
+
+                        }else{
+                            increasetUnreadMessageCounter(icm.getSenderID());
+                            if (activeusersfragment != null) {
+                                activeusersfragment.updateActiveListContent();
+                            }
+                        }
+                        Log.d("INFO", "EOF, FILE REcived Completely");
+                    }
+                    /// SendUtil.sendFileChunkToRecivers(clientTable, fcmv2, tRecivers);
+                }
+            }
+        } catch (Exception ex) {
+            recivedFilesTable.remove(new RecivedFileKey(fcmv2.getSenderID(), fcmv2.getFileName()));
+            Toast.makeText(getApplicationContext(), "Error While Recive file from Student: "+fcmv2.getSenderName()+", "+fcmv2.getSenderID(), Toast.LENGTH_SHORT).show();
+            ex.printStackTrace();
+        }
     }
 
 
