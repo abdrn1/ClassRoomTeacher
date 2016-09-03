@@ -487,12 +487,18 @@ public class ActiveUsersFragment extends Fragment {
 
 
     public void updateActiveListContent() {
-        getActivity().runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                clientListAdapter.notifyDataSetChanged();
-            }
-        });
+        try{
+            getActivity().runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    clientListAdapter.notifyDataSetChanged();
+                }
+            });
+
+        }catch (Exception ex){
+           ex.printStackTrace();
+        }
+
 
     }
 
