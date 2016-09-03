@@ -10,6 +10,7 @@ public class ExamResultMessage {
     private String[] receivers;
     private double examresult;
     private double studentresult;
+    String examFileName ="";
 
     public ExamResultMessage() {
     }

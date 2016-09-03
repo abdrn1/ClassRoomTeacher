@@ -9,6 +9,7 @@ public class ExamResultModel {
     private Integer clientImage;
     private double examMark = 0;
     private double studentMark = 0;
+    String examFileName ="";
 
     public ExamResultModel() {
 

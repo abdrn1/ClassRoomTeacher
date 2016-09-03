@@ -1,6 +1,7 @@
 package com.abd.classroom1;
 
 import android.graphics.Bitmap;
+import android.view.View;
 
 /**
  * Created by Abd on 3/7/2016.
@@ -15,6 +16,8 @@ public class ChatMessageModel {
     Bitmap image;
     String filepath;
     boolean isSelf;
+    int allok1;
+    int allok2;
 
 
 
@@ -29,6 +32,24 @@ public class ChatMessageModel {
         this.messageType = messageType;
         this.simpleMessage = simpleMessage;
         this.isSelf = isSelf;
+        allok1 = View.GONE;
+        allok2 = View.GONE;
+    }
+
+    public int getAllok1() {
+        return allok1;
+    }
+
+    public void setAllok1(int allok1) {
+        this.allok1 = allok1;
+    }
+
+    public int getAllok2() {
+        return allok2;
+    }
+
+    public void setAllok2(int allok2) {
+        this.allok2 = allok2;
     }
 
     public String getFilepath() {

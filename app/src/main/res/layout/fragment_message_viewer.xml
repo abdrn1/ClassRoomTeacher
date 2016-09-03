@@ -66,6 +66,14 @@
         android:layout_height="50dp"
         android:background="@color/white"
         android:orientation="horizontal">
+        <ImageButton
+            android:id="@+id/btn_like"
+            android:layout_width="55dp"
+            android:layout_height="50dp"
+            android:layout_marginLeft="5dp"
+            android:layout_marginStart="5dp"
+            android:background="@drawable/circle_shape"
+            android:src="@drawable/l1lik2" />
 
         <ImageButton
             android:id="@+id/btn_msgv_captureimage"

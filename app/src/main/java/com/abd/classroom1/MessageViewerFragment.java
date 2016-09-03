@@ -113,6 +113,7 @@ public class MessageViewerFragment extends Fragment {
         ImageButton btnsend = (ImageButton) getActivity().findViewById(R.id.btnSend);
         ImageButton btnsendfile = (ImageButton) getActivity().findViewById(R.id.btn_msgv_sendfile);
         ImageButton btnCaptureImage = (ImageButton) getActivity().findViewById(R.id.btn_msgv_captureimage);
+        ImageButton btnlike = (ImageButton)getActivity().findViewById(R.id.btn_like);
         GeneralUtil.buttonEffect(btnsendfile);
         GeneralUtil.buttonEffect(btnsend);
         listview.setOnItemClickListener(new AdapterView.OnItemClickListener() {
@@ -154,6 +155,17 @@ public class MessageViewerFragment extends Fragment {
                 });
                 popup.show();
                 return true;
+            }
+        });
+
+        btnlike.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if(SendUtil.checkConnection(client,iam)){
+                    sendOkMessage();
+                }else{
+                    Toast.makeText(getActivity(), "Connection Failed", Toast.LENGTH_SHORT).show();
+                }
             }
         });
 
@@ -212,6 +224,18 @@ public class MessageViewerFragment extends Fragment {
 
     public void setMessagesList(List<ChatMessageModel> ll) {
         this.l1 = ll;
+    }
+
+
+    private void sendOkMessage(){
+        TextMeesage currTm = new TextMeesage();
+        currTm.setSenderID(iam.getUserID());
+        currTm.setSenderName(iam.getUserName());
+        currTm.setMessageType("OK");
+        currTm.setTextMessage("");
+        currTm.setRecivers(new String[]{reciverID});
+        addNewMessage(new SimpleTextMessage(iam.getUserID(), iam.getUserName(), "OK", ""), true);
+        client.sendTCP(currTm);
     }
 
     private void takePicture() {

@@ -13,14 +13,11 @@ import android.view.ViewGroup;
 import android.widget.BaseAdapter;
 import android.widget.ImageView;
 import android.widget.TextView;
-
 import java.util.List;
 
 public class MessagesListAdapter extends BaseAdapter {
-
     private Context context;
     private List<ChatMessageModel> messagesItems;
-
     public MessagesListAdapter(Context context, List<ChatMessageModel> navDrawerItems) {
         this.context = context;
         this.messagesItems = navDrawerItems;
@@ -60,6 +57,11 @@ public class MessagesListAdapter extends BaseAdapter {
             // message belongs to you, so load the right aligned layout
             convertView = mInflater.inflate(R.layout.list_item_message_right,
                     null);
+
+            ImageView allok1 = (ImageView)convertView.findViewById(R.id.allok1);
+            ImageView allok2 = (ImageView)convertView.findViewById(R.id.allok2);
+            allok1.setVisibility(m.getAllok1());
+            allok2.setVisibility(m.getAllok2() );
         } else {
             // message belongs to other person, load the left aligned layout
             convertView = mInflater.inflate(R.layout.list_item_message_left,

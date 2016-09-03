@@ -51,6 +51,7 @@ public class MainActivity extends AppCompatActivity
     private final int ACTIVEUSERSFRAG = 2;
     private final int MESSSAGEVIWERFRAG = 3;
     private final int EXAMRESULTFRAG = 4;
+    private final int MONITORFRAG = 5;
     Client client;
     Kryo kryo;
     FragmentManager fm;
@@ -142,7 +143,7 @@ public class MainActivity extends AppCompatActivity
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
-        // Inflate the menu; this adds items to the action bar if it is present.
+
         getMenuInflater().inflate(R.menu.main, menu);
         return true;
     }
@@ -268,7 +269,6 @@ public class MainActivity extends AppCompatActivity
                             setSuccessfulLogin(((UserLogin) ob));
                             fm = getFragmentManager();
                             ft = fm.beginTransaction();
-                            //if(activeusersfragment ==null){
                             activeusersfragment = new ActiveUsersFragment();
                             // }
                             ft.replace(R.id.fragment_container, activeusersfragment, "ACTIVE");
@@ -410,17 +410,18 @@ public class MainActivity extends AppCompatActivity
                 icm.setIsSelf(false);
                 buildfromBytesV2 = new BuildFileFromBytesV2(savepath + "/Classrom/");
                 buildfromBytesV2.setChatMessageModel(icm);
-                buildfromBytesV2.constructFile(fcmv2);
+               // buildfromBytesV2.constructFile(fcmv2);
                 recivedFilesTable.put(new RecivedFileKey(fcmv2.senderID, fcmv2.getFileName()), buildfromBytesV2);
 
             } else {
-                BuildFileFromBytesV2 bffb = recivedFilesTable.get(new RecivedFileKey(fcmv2.getSenderID(), fcmv2.getFileName()));
-                if (bffb != null) {
+                buildfromBytesV2 = recivedFilesTable.get(new RecivedFileKey(fcmv2.getSenderID(), fcmv2.getFileName()));
+            }
+                if (buildfromBytesV2 != null) {
 
                     Log.d("INFO", "Current File Chunk: " + Long.toString(fcmv2.getChunkCounter()));
-                    if (bffb.constructFile(fcmv2)) {
+                    if (buildfromBytesV2.constructFile(fcmv2)) {
                         recivedFilesTable.remove(new RecivedFileKey(fcmv2.getSenderID(), fcmv2.getFileName()));
-                        icm = bffb.getChatMessageModel();
+                        icm = buildfromBytesV2.getChatMessageModel();
                         if (SendUtil.checkIfFileIsImage(fcmv2.getFileName())) {
                             // Bitmap bm = BitmapFactory.decodeFile(savepath + "/Classrom/" + fcmv2.getFileName());
                             String tempImagePath = savepath + "/Classrom/" + fcmv2.getFileName();
@@ -449,7 +450,7 @@ public class MainActivity extends AppCompatActivity
                         Log.d("INFO", "EOF, FILE REcived Completely");
                     }
                     /// SendUtil.sendFileChunkToRecivers(clientTable, fcmv2, tRecivers);
-                }
+
             }
         } catch (Exception ex) {
             recivedFilesTable.remove(new RecivedFileKey(fcmv2.getSenderID(), fcmv2.getFileName()));
@@ -462,6 +463,7 @@ public class MainActivity extends AppCompatActivity
         ExamResultModel temp = new ExamResultModel();
         temp.setClientID(erm.getSenderID());
         temp.setClientName(erm.getSenderName());
+        temp.examFileName = erm.examFileName;
         int resourceID = getResourseId("u" + erm.getSenderID(), "drawable", getPackageName());
         if (resourceID == -1) {
             resourceID = R.drawable.unknown;
@@ -737,7 +739,7 @@ public class MainActivity extends AppCompatActivity
         monitorFragment.setReceivers(receivers);
         monitorFragment.setClient(client);
         ft.replace(R.id.fragment_container, monitorFragment, "MONITOR");
-        activeFragmentID = 4;
+        activeFragmentID = MONITORFRAG;
         ft.addToBackStack(null);
         ft.commit();
 

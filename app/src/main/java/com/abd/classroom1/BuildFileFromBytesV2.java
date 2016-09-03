@@ -30,7 +30,7 @@ public class BuildFileFromBytesV2 {
         this.saveDirectoryPath=SaveDirectoryPath;
     }
 
-    public boolean constructFile(FileChunkMessageV2 imMsg) throws IOException {
+    public boolean constructFile(FileChunkMessageV2 imMsg) throws Exception {
 
         if(imMsg.getChunkCounter()==(-1)){ //End OF Fle Packet
             Log.d("INFO", "FIle Should Be closed");

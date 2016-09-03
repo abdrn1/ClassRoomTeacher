@@ -25,6 +25,8 @@ public class ExamResultListAdapter extends ArrayAdapter {
 
     static class ViewHolder {
         protected TextView stdName;
+        protected TextView examFileName;
+
         protected TextView examMark;
 
         protected TextView studentMark;
@@ -38,6 +40,7 @@ public class ExamResultListAdapter extends ArrayAdapter {
             view = inflator.inflate(R.layout.exam_result_list, null);
             final ViewHolder viewHolder = new ViewHolder();
             viewHolder.stdName = (TextView) view.findViewById(R.id.std_name);
+            viewHolder.examFileName = (TextView) view.findViewById(R.id.exam_file_name);
             viewHolder.examMark = (TextView) view.findViewById(R.id.std_exam_mark);
             viewHolder.img = (ImageView) view.findViewById(R.id.std_image);
             viewHolder.studentMark = (TextView) view.findViewById(R.id.std_student_mark);
@@ -47,6 +50,7 @@ public class ExamResultListAdapter extends ArrayAdapter {
         }
         ViewHolder holder = (ViewHolder) view.getTag();
         holder.stdName.setText(list.get(position).getClientName());
+        holder.examFileName.setText(list.get(position).examFileName);
         holder.img.setImageResource(list.get(position).getClientImage());
         holder.studentMark.setText(Double.toString(list.get(position).getStudentMark()));
         holder.examMark.setText(Double.toString(list.get(position).getExamMark()));
