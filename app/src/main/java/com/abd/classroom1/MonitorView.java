@@ -5,8 +5,6 @@ import android.app.FragmentTransaction;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.os.Bundle;
-import android.util.Base64;
 import android.util.Log;
 import android.view.MenuItem;
 import android.view.View;
@@ -19,8 +17,6 @@ import com.esotericsoftware.kryonet.Client;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.util.List;
 
 import Decoder.BASE64Decoder;
 import Decoder.BASE64Encoder;
@@ -81,7 +77,7 @@ public class MonitorView implements MonitorFragment.ScreenshotListener {
 
                             if (bm != null) {
                                 ByteArrayOutputStream baos = new ByteArrayOutputStream();
-                                bm.compress(Bitmap.CompressFormat.JPEG, 80, baos);
+                                bm.compress(Bitmap.CompressFormat.JPEG, 75, baos);
                                 byte[] imageBytes = baos.toByteArray();
 
                                 BASE64Encoder encoder = new BASE64Encoder();

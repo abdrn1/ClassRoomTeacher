@@ -125,6 +125,16 @@
             android:src="@drawable/l1television"
             android:textColor="@color/white"
             />
+        <ImageButton
+            android:id="@+id/check_all"
+            android:layout_width="55dp"
+            android:layout_height="fill_parent"
+            android:layout_marginLeft="5dp"
+            android:layout_marginStart="5dp"
+            android:background="@drawable/circle_shape"
+            android:src="@drawable/checkall"
+            android:textColor="@color/white"
+            />
 
     </LinearLayout>
 

@@ -9,7 +9,15 @@ public class UserLogin {
      String userName;
      String userType;
      int UserIMage=1;
+     int myStatus=0;
 
+    public int getMyStatus() {
+        return myStatus;
+    }
+
+    public void setMyStatus(int myStatus) {
+        this.myStatus = myStatus;
+    }
 
     public boolean isLogin_Succesful() {
         return login_Succesful;

@@ -2,12 +2,19 @@ package com.abd.classroom1;
 
 import android.app.FragmentManager;
 import android.app.FragmentTransaction;
+import android.app.admin.DevicePolicyManager;
+import android.content.ComponentName;
+import android.content.Context;
+import android.content.Intent;
+import android.content.ServiceConnection;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Canvas;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
+import android.os.IBinder;
 import android.os.StrictMode;
 import android.support.design.widget.NavigationView;
 import android.support.v4.view.GravityCompat;
@@ -18,14 +25,16 @@ import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
 import android.widget.Toast;
 
+import com.abd.classroom1.service.MessageService;
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryonet.Client;
 import com.esotericsoftware.kryonet.Connection;
 import com.esotericsoftware.kryonet.Listener;
 
-import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -35,7 +44,7 @@ import java.util.Collections;
 import java.util.Hashtable;
 import java.util.List;
 
-import Decoder.BASE64Decoder;
+import Decoder.BASE64Encoder;
 
 public class MainActivity extends AppCompatActivity
         implements NavigationView.OnNavigationItemSelectedListener,
@@ -44,14 +53,18 @@ public class MainActivity extends AppCompatActivity
         MessageViewerFragment.OnFragmentInteractionListener,
         ExamResultViewerFragment.OnFragmentInteractionListener, MonitorFragment.OnFragmentInteractionListener,
         ClientListAdapter.OnClientListAdapterInteraction,
-        AddRemoveSync {
+        AddRemoveSync, OnServiceInteractionListener {
 
     // begin note : should be save later in the bundle;
-    private final int LOGINFRAG = 1;
+    private final int LOGINFRAG = -1;
     private final int ACTIVEUSERSFRAG = 2;
     private final int MESSSAGEVIWERFRAG = 3;
     private final int EXAMRESULTFRAG = 4;
-    private final int MONITORFRAG = 5;
+    private final int EXAMVIWER = 5;
+    private static final int IMGVIWER = 6;
+
+
+    private static final int ADMIN_INTENT = 15;
     Client client;
     Kryo kryo;
     FragmentManager fm;
@@ -61,21 +74,76 @@ public class MainActivity extends AppCompatActivity
     ActiveUsersFragment activeusersfragment;
     MessageViewerFragment messageViewerFragment;
     ExamResultViewerFragment examResultViewerFragment;
+    CmImageViewerFragment imgViewerFragment;
     MonitorFragment monitorFragment;
     String[] clientStatus;
     ///
-    private UserLogin iam =null;
+    private UserLogin iam = null;
+    private UserLogin loginDetail = null;
     private List<ChatMessageModel> chatMessageModelList;
     private List<ClientModel> clientsList;
     private List<ExamResultModel> examResultModels;
     private Hashtable<String, List<ChatMessageModel>> allStudentsLists;
+    List<QuestionItem> tQuestionsList;
     private Thread checkServer;
     private int activeFragmentID = 1;
     private Hashtable<RecivedFileKey, BuildFileFromBytesV2> recivedFilesTable;
     private Handler handler;
+    Listener myListener;
 
 
-    ///// end note
+    private static final String description = "Sample Administrator description";
+    private DevicePolicyManager mDevicePolicyManager;
+    private ComponentName mComponentName;
+    private Context mycontext;
+
+    MessageService messageService;
+    boolean mBound = false;
+
+// begin connection with MessageService
+
+    private ServiceConnection serviceConnection = new ServiceConnection() {
+        @Override
+        public void onServiceConnected(ComponentName name, IBinder service) {
+            MessageService.LocalBinder localBinder = (MessageService.LocalBinder) service;
+            messageService = localBinder.getService();
+            messageService.setsBounded(true);
+            mBound = true;
+            Log.i("info", "Service Connected");
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName name) {
+            //messageService = null;
+            //// TODO: 9/4/2016  this could make error if service = nill 
+            messageService.setsBounded(false);
+            mBound = false;
+
+
+        }
+    };
+
+    @Override
+    protected void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+        outState.putInt("ACTIVEFRAG",activeFragmentID);
+    }
+
+    @Override
+    protected void onRestoreInstanceState(Bundle savedInstanceState) {
+        super.onRestoreInstanceState(savedInstanceState);
+        activeFragmentID = savedInstanceState.getInt("ACTIVEFRAG");
+    }
+
+    public List<QuestionItem> gettQuestionsList() {
+        return tQuestionsList;
+    }
+
+    public void settQuestionsList(List<QuestionItem> tQuestionsList) {
+        this.tQuestionsList = tQuestionsList;
+    }
+
+    // end connection with Messsage Service
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -83,21 +151,20 @@ public class MainActivity extends AppCompatActivity
         StrictMode.ThreadPolicy policy = new StrictMode.ThreadPolicy.Builder().permitAll().build();
         StrictMode.setThreadPolicy(policy);
         setContentView(R.layout.activity_main);
+        handler = new Handler();
+        mycontext = this;
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
-        ExamResultModel aa = new ExamResultModel();
-        aa.setClientID("105");
-        aa.setClientName("Radwan");
-        aa.setClientImage(R.drawable.u27);
-        aa.setStudentMark(25);
-        aa.setExamMark(50);
+
         chatMessageModelList = Collections.synchronizedList(new ArrayList<ChatMessageModel>());
         allStudentsLists = new Hashtable<>();
-        recivedFilesTable = new Hashtable<>();
-        examResultModels = new ArrayList<>(); // for saving exam result
-        examResultModels.add(aa);
+
+       // examResultModels = new ArrayList<>(); // for saving exam result
+        //examResultModels.add(aa);
         clientsList = new ArrayList<>();// for saving active clients
         clientStatus = getResources().getStringArray(R.array.client_status); // String Array of clients status
+
+
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
         ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(
                 this, drawer, toolbar, R.string.navigation_drawer_open, R.string.navigation_drawer_close);
@@ -106,25 +173,52 @@ public class MainActivity extends AppCompatActivity
 
         NavigationView navigationView = (NavigationView) findViewById(R.id.nav_view);
         navigationView.setNavigationItemSelectedListener(this);
+
         fm = getFragmentManager();
-        loginfrag = (LoginFragment) fm.findFragmentByTag("LOGIN");
-        if (loginfrag == null) {
-            loginfrag = new LoginFragment();
-        }
-        ft = fm.beginTransaction();
-        ft.add(R.id.fragment_container, loginfrag, "LOGIN");
-        ft.commit();
+
         prepareConnection();
-        checkServer = new Thread(this);
-        checkServer.start();
+        showLoginFragment();
 
-        handler = new Handler();
+        Log.d("LIFE", "OnCreate()");
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if (requestCode == ADMIN_INTENT) {
+            if (resultCode == RESULT_OK) {
+                Toast.makeText(getApplicationContext(), "Registered As Admin", Toast.LENGTH_SHORT).show();
+            } else {
+                Toast.makeText(getApplicationContext(), "Failed to register as Admin", Toast.LENGTH_SHORT).show();
+            }
+        }
+    }
 
 
-        //open the connection for the first TIME
+    public void showLoginFragment() {
+
+        if (activeFragmentID != LOGINFRAG) {
+            loginfrag = (LoginFragment) fm.findFragmentByTag("LOGIN");
+            if (loginfrag == null) {
+                loginfrag = new LoginFragment();
+
+
+                ft = fm.beginTransaction();
+                ft.add(R.id.fragment_container, loginfrag, "LOGIN");
+                ft.commit();
+                activeFragmentID = LOGINFRAG;
+            }
+        }
+        if(checkServer==null){
+            checkServer = new Thread(this);
+        }
+        if(!checkServer.isAlive()){
+            Log.d("THREAD", "NOt ALIVE");
+            checkServer.start();
+        }
 
 
     }
+
 
     @Override
     public void onBackPressed() {
@@ -133,11 +227,23 @@ public class MainActivity extends AppCompatActivity
             drawer.closeDrawer(GravityCompat.START);
         }
         if (getFragmentManager().getBackStackEntryCount() > 0) {
+            if (activeFragmentID == EXAMVIWER) {
+                return;
+            }
+
+            if (activeFragmentID == IMGVIWER) {
+                this.getSupportActionBar().show();
+                activeFragmentID = MESSSAGEVIWERFRAG;
+                messageViewerFragment.updateMessageListContent();
+            } else {
+                activeFragmentID = ACTIVEUSERSFRAG;
+                activeusersfragment.updateActiveListContent();
+            }
             getFragmentManager().popBackStack();
-            activeFragmentID = ACTIVEUSERSFRAG;
             Log.d("Info", "Acrive frag ID = :" + Integer.toString(activeFragmentID));
         } else {
-            super.onBackPressed();
+           // super.onBackPressed();
+            Log.d("Info", "NO FRAGments in the stack");
         }
     }
 
@@ -159,9 +265,38 @@ public class MainActivity extends AppCompatActivity
         //noinspection SimplifiableIfStatement
         if (id == R.id.action_settings) {
             return true;
+        }if(id == R.id.show_all_on_monitor){
+            sendScreenShot();
+            return true;
         }
 
         return super.onOptionsItemSelected(item);
+    }
+    private void sendScreenShot(){
+        Log.d("MON","Start ");
+        Bitmap bm = screenShot(getWindow().getDecorView().getRootView());
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        bm.compress(Bitmap.CompressFormat.JPEG, 45, baos);
+        byte[] imageBytes = baos.toByteArray();
+
+        BASE64Encoder encoder = new BASE64Encoder();
+        String encodedImage = encoder.encode(imageBytes);
+
+        try {
+            baos.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        final BoardScreenshotMessage bsm = new BoardScreenshotMessage();
+        bsm.setReceiverId(iam.getUserID());
+        bsm.setBase64Photo(encodedImage);
+        Log.d("MON","SEND to show on board ");
+        if(SendUtil.checkConnection(client,iam)) {
+            client.sendTCP(bsm);
+        }else{
+            Log.d("MON","Connection Failed ");
+        }
+
     }
 
     @SuppressWarnings("StatementWithEmptyBody")
@@ -177,10 +312,10 @@ public class MainActivity extends AppCompatActivity
                 examResultViewerFragment.updateExamResultContent();
             } else {
                 if (iam != null && ft != null) {
-                    examResultViewerFragment = ExamResultViewerFragment.newInstance(examResultModels);
+                    examResultViewerFragment = new ExamResultViewerFragment();
                     ft = fm.beginTransaction();
                     ft.replace(R.id.fragment_container, examResultViewerFragment, "EXAMEXAM");
-                    examResultViewerFragment.setL1(examResultModels);
+                    examResultViewerFragment.setL1(messageService.getExamResultsList());
                     activeFragmentID = EXAMRESULTFRAG;
                     ft.addToBackStack(null);
                     //examResultViewerFragment.set(iam);
@@ -218,7 +353,7 @@ public class MainActivity extends AppCompatActivity
 
     /// ABd Add this code
     private void prepareConnection() {
-        client = new Client((1024*1024), (1024*1024)/10);
+        client = new Client((1024 * 1024), (1024 * 1024) / 10);
         kryo = client.getKryo();
         kryo.register(byte[].class);
         kryo.register(String[].class);
@@ -245,155 +380,104 @@ public class MainActivity extends AppCompatActivity
         client.setKeepAliveTCP(7000);
         client.setTimeout(50000);
 
-        client.addListener(new Listener() {
-            public void received(Connection c, Object ob) {
-                if (ob instanceof SimpleTextMessage) {
-                    Log.d("SIMPLE", "New Simple Message Recived");
-                    SimpleTextMessage stm = (SimpleTextMessage) ob;
-                    if (stm.getMessageType().equals("TXT")){
-                        dealWithSimpleTextMessage(stm);
-                    }else if (stm.getMessageType().equals("OK")){
-                       dealWithLikeMessage(stm);
+        if (myListener == null) {
 
-                    }
+           myListener = new Listener() {
+                public void received(Connection c, Object ob) {
+                    if (ob instanceof SimpleTextMessage) {
 
-                } else if (ob instanceof UserLogin) {
-                    if (!((UserLogin) ob).isLogin_Succesful()) {
-                        showInvalidUserNameOrPassword();
-                        return;
-                    }
-                    Log.d("INFO", "New User Login Packet");
-                    if (((UserLogin) ob).getUserType().equals("TEACHER") && (iam ==null)) {
-                        System.out.println("Login Message Recived");
-                        if (((UserLogin) ob).isLogin_Succesful()) {
-                            setSuccessfulLogin(((UserLogin) ob));
-                            fm = getFragmentManager();
-                            ft = fm.beginTransaction();
-                            activeusersfragment = new ActiveUsersFragment();
-                            // }
-                            ft.replace(R.id.fragment_container, activeusersfragment, "ACTIVE");
 
-                            // for Test Only
-                            ClientModel tempcl = new ClientModel("29", "محمود هاشم", R.drawable.u29);
-                            tempcl.setLastStatus("متوفر");
+                    } else if (ob instanceof UserLogin)
 
-                            clientsList.add(tempcl);
-                            tempcl = new ClientModel("32", "محمود هاشم", R.drawable.u30);
-                            tempcl.setLastStatus("متوفر");
-                            clientsList.add(tempcl);
-                           /* clientsList.add(new ClientModel("27", "Hassan", R.drawable.unknown));
-                            clientsList.add(new ClientModel("28", "Hassan", R.drawable.unknown));*/
-                            iam = (UserLogin) ob;
-                            activeusersfragment.setClient(client);
-                            activeusersfragment.setUserlogin((UserLogin) ob);
-                            activeusersfragment.setActiveUsersList(clientsList);
-                            //activeusersfragment.setChatMessageModelList(chatMessageModelList);
-                            activeusersfragment.setAllStudentsLists(allStudentsLists);
-                            ft.commit();
-                            //activeFragmentID = ACTIVEUSERSFRAG;
-                            Log.d("INFO", "Succesfull Log IN");
-                        } else {
-                            loginfrag.showInvalidLoginMessage();
-                        }
-                    } else if (((UserLogin) ob).getUserType().equals("STUDENT")) {
-                        addNewActiveClient((UserLogin) ob);
-                        if (activeFragmentID == ACTIVEUSERSFRAG && activeusersfragment !=null ) {
 
-                            activeusersfragment.setActiveUsersList(clientsList);
-
-                            activeusersfragment.updateActiveListContent();
-
-                        } else {
+                    {
+                        UserLogin tUL = (UserLogin) ob;
+                        if (!((UserLogin) ob).isLogin_Succesful()) {
                             showInvalidUserNameOrPassword();
+                            return;
                         }
-                    }
-                } else if (ob instanceof StatusMessage) {
-                    dealWithStatusMessage((StatusMessage) ob);
-                } else if (ob instanceof ExamResultMessage) {
-                    Log.d("INFO", "Exam Result Message Recived");
-                    dealWithExamResultMessage((ExamResultMessage) ob);
-                }else if(ob instanceof ScreenshotMessage){
-                    if(monitorFragment != null)
-                        monitorFragment.screenshotReceived((ScreenshotMessage) ob);
-                }else if (ob instanceof FileChunkMessageV2) {
-                    if (((FileChunkMessageV2) ob).getFiletype().equals(FileChunkMessageV2.FILE)) {
-                        Log.d("FILE", "New File Recived");
-                       dealWithFileMessage(((FileChunkMessageV2) ob));
-                    }
+                        if (tUL.getUserType().equals("TEACHER") && (iam == null)) {
+                            if (tUL.getUserID().equals(loginDetail.getUserID())) {
+                                System.out.println("Login Message Recived");
 
-                }else if (ob instanceof CapturedImageMessage){
+                                setSuccessfulLogin(((UserLogin) ob));
+                                fm = getFragmentManager();
+                                ft = fm.beginTransaction();
+                                activeusersfragment = new ActiveUsersFragment();
+                                // }
+                                ft.replace(R.id.fragment_container, activeusersfragment, "ACTIVE");
+                                //UserLogin teacher = new UserLogin("100", "TEACHER", "Teacher", R.drawable.u100);
+                                //addNewActiveClient(teacher);
 
-                    try {
-                        dealWithCapturedImageMessage((CapturedImageMessage) ob);
-                    }catch (Exception ex1){
-                        handler.post(new Runnable() {
-                            @Override
-                            public void run() {
-                                Toast.makeText(getApplicationContext(), "Failed to Load Captured Image", Toast.LENGTH_SHORT).show();
+                                iam = (UserLogin) ob;
+                                activeusersfragment.setClient(client);
+                                activeusersfragment.setUserlogin((UserLogin) ob);
+                                activeusersfragment.setActiveUsersList(clientsList);
+                                activeusersfragment.setAllStudentsLists(allStudentsLists);
+
+
+                                ft.commit();
+                                if (mBound) {
+                                    messageService.setClient(client);
+                                    messageService.setIam(iam);
+                                    messageService.setAllStudentsLists(allStudentsLists);
+                                    messageService.settQuestionsList(tQuestionsList);
+                                    messageService.setActivity(MainActivity.this);
+                                    messageService.setClientsList(clientsList);
+                                    messageService.addClientListener();
+                                    Log.i("info", "Listener set to Service");
+                                }
+                                Log.d("INFO", "Succesfull Log IN");
                             }
-                        });
+                        }/*else if (iam != null) {
+                            addNewActiveClient((UserLogin) ob);
 
-                        ex1.printStackTrace();
+                        }*/
+
+                        } else if(ob instanceof ScreenshotMessage){
+                        if(monitorFragment != null)
+                            monitorFragment.screenshotReceived((ScreenshotMessage) ob);
+                    }else if (ob instanceof StatusMessage) {
+                       // dealWithStatusMessage((StatusMessage) ob);
                     }
-
-
-
                 }
-            }
-        });
+            };
+
+
+            client.addListener(myListener);
+        }
+
 
         return true;
 
 
     }
 
-    private synchronized  void dealWithCapturedImageMessage(CapturedImageMessage cim) throws Exception {
-
-        Bitmap bm;
-        ChatMessageModel chm = new ChatMessageModel(cim.getSenderName(),"","IMG","IMGE",false);
-        BASE64Decoder decoder = new BASE64Decoder();
-        byte[] imageBytes = decoder.decodeBuffer(cim.getPicture());
-        Log.d("DECODE","Phase 1");
-        ByteArrayInputStream bis = new ByteArrayInputStream(imageBytes);
-        bm = BitmapFactory.decodeStream(bis);
-        Log.d("DECODE","Phase 2");
-        chm.setImage(bm);
-        chm.setSimpleMessage(cim.getFileName());
-        chm.setMessageType("IMG");// Necessary  to display imagechatMessages.add(chm);
-        String savepath = Environment.getExternalStorageDirectory().getPath();
-        savepath =savepath + "/Classroom/pics/"+cim.getFileName();
-        chm.setFilepath(savepath);
-        allStudentsLists.get(cim.getSenderID()).add(chm);
-        Log.d("DECODE","Phase 3");
-        writeByteImageTofile(imageBytes,cim.getFileName());
-        if ((activeFragmentID == MESSSAGEVIWERFRAG) && (messageViewerFragment!=null)) {
-            messageViewerFragment.updateAdapterchanges();
-        }else{
-            increasetUnreadMessageCounter(cim.getSenderID());
-            if (activeusersfragment != null) {
-                activeusersfragment.updateActiveListContent();
-            }
-        }
-
+    public Bitmap screenShot(View view) {
+        Bitmap bitmap = Bitmap.createBitmap(view.getWidth(), view.getHeight(), Bitmap.Config.RGB_565);
+        Canvas canvas = new Canvas(bitmap);
+        view.draw(canvas);
+        return bitmap;
     }
 
-    private void writeByteImageTofile(byte[] imageBytes,String imagefileName) throws Exception{
+
+    private void writeByteImageTofile(byte[] imageBytes, String imagefileName) throws Exception {
         String savepath = Environment.getExternalStorageDirectory().getPath();
-        savepath =savepath + "/Classroom/pics/";
-        File destination = new File(savepath,imagefileName);
+        savepath = savepath + "/Classroom/pics/";
+        File destination = new File(savepath, imagefileName);
         FileOutputStream fo;
 
-            destination.createNewFile();
-            fo = new FileOutputStream(destination);
-            fo.write(imageBytes);
-            fo.close();
-            //Toast.makeText(getApplicationContext(), "Write IMGE DONEe", Toast.LENGTH_SHORT).show();
+        destination.createNewFile();
+        fo = new FileOutputStream(destination);
+        fo.write(imageBytes);
+        fo.close();
+        //Toast.makeText(getApplicationContext(), "Write IMGE DONEe", Toast.LENGTH_SHORT).show();
 
     }
 
 
-    public synchronized void dealWithFileMessage(FileChunkMessageV2 fcmv2) {
-        BuildFileFromBytesV2 buildfromBytesV2=null;
+    public void dealWithFileMessage(FileChunkMessageV2 fcmv2) {
+        BuildFileFromBytesV2 buildfromBytesV2;
         ChatMessageModel icm;
         try {
 
@@ -401,60 +485,61 @@ public class MainActivity extends AppCompatActivity
             Log.d("INFO", "File Chunk Recived");
             //recive the first packet from new file
             if (fcmv2.getChunkCounter() == 1L) {
-              //  final FileChunkMessageV2 tfcmv2 = fcmv2;
-                Log.d("INFO PAth=", savepath + "/Classrom");
+                //  final FileChunkMessageV2 tfcmv2 = fcmv2;
+                Log.d("INFO PAth=", savepath + "/Classroom");
                 icm = new ChatMessageModel();
                 icm.setSenderID(fcmv2.getSenderID());
                 icm.setSenderName(fcmv2.getSenderName());
-                icm.setFilepath(savepath + "/Classrom/"+fcmv2.getFileName());
+                icm.setFilepath(savepath + "/Classroom/" + fcmv2.getFileName());
                 icm.setIsSelf(false);
-                buildfromBytesV2 = new BuildFileFromBytesV2(savepath + "/Classrom/");
+                buildfromBytesV2 = new BuildFileFromBytesV2(savepath + "/Classroom/");
                 buildfromBytesV2.setChatMessageModel(icm);
-               // buildfromBytesV2.constructFile(fcmv2);
+                // buildfromBytesV2.constructFile(fcmv2);
                 recivedFilesTable.put(new RecivedFileKey(fcmv2.senderID, fcmv2.getFileName()), buildfromBytesV2);
 
             } else {
                 buildfromBytesV2 = recivedFilesTable.get(new RecivedFileKey(fcmv2.getSenderID(), fcmv2.getFileName()));
             }
-                if (buildfromBytesV2 != null) {
+            if (buildfromBytesV2 != null) {
 
-                    Log.d("INFO", "Current File Chunk: " + Long.toString(fcmv2.getChunkCounter()));
-                    if (buildfromBytesV2.constructFile(fcmv2)) {
-                        recivedFilesTable.remove(new RecivedFileKey(fcmv2.getSenderID(), fcmv2.getFileName()));
-                        icm = buildfromBytesV2.getChatMessageModel();
-                        if (SendUtil.checkIfFileIsImage(fcmv2.getFileName())) {
-                            // Bitmap bm = BitmapFactory.decodeFile(savepath + "/Classrom/" + fcmv2.getFileName());
-                            String tempImagePath = savepath + "/Classrom/" + fcmv2.getFileName();
-                            // Bitmap bm = ScalingUtilities.fitImageDecoder(tempImagePath,mDstWidth,mDstHeight);
-                            Bitmap bm = ScalDownImage.decodeSampledBitmapFromResource(tempImagePath, 80, 80);
-                            icm.setImage(bm);
-                            icm.setMessageType("IMG");
-                            icm.setSimpleMessage(fcmv2.getFileName());
-                        } else {
-                            Bitmap bm = BitmapFactory.decodeResource(getResources(), R.drawable.filecompleteicon);
-                            icm.setImage(bm);
-                            icm.setSimpleMessage(fcmv2.getFileName());
-                            icm.setMessageType("FLE");
-                        }
-
-                        allStudentsLists.get(fcmv2.getSenderID()).add(icm);
-                        if((activeFragmentID==MESSSAGEVIWERFRAG) && (messageViewerFragment!=null) ){
-                            messageViewerFragment.updateAdapterchanges();
-
-                        }else{
-                            increasetUnreadMessageCounter(icm.getSenderID());
-                            if (activeusersfragment != null) {
-                                activeusersfragment.updateActiveListContent();
-                            }
-                        }
-                        Log.d("INFO", "EOF, FILE REcived Completely");
+                Log.d("INFO", "Current File Chunk: " + Long.toString(fcmv2.getChunkCounter()));
+                if (buildfromBytesV2.constructFile(fcmv2)) {
+                    recivedFilesTable.remove(new RecivedFileKey(fcmv2.getSenderID(), fcmv2.getFileName()));
+                    icm = buildfromBytesV2.getChatMessageModel();
+                    if (SendUtil.checkIfFileIsImage(fcmv2.getFileName())) {
+                        // Bitmap bm = BitmapFactory.decodeFile(savepath + "/Classrom/" + fcmv2.getFileName());
+                        String tempImagePath = savepath + "/Classroom/" + fcmv2.getFileName();
+                        // Bitmap bm = ScalingUtilities.fitImageDecoder(tempImagePath,mDstWidth,mDstHeight);
+                        Bitmap bm = ScalDownImage.decodeSampledBitmapFromResource(tempImagePath, 80, 80);
+                        icm.setImage(bm);
+                        icm.setMessageType("IMG");
+                        icm.setSimpleMessage(fcmv2.getFileName());
+                    } else {
+                        Bitmap bm = BitmapFactory.decodeResource(getResources(), R.drawable.filecompleteicon);
+                        icm.setImage(bm);
+                        icm.setSimpleMessage(fcmv2.getFileName());
+                        icm.setMessageType("FLE");
                     }
-                    /// SendUtil.sendFileChunkToRecivers(clientTable, fcmv2, tRecivers);
 
+                    allStudentsLists.get(fcmv2.getSenderID()).add(icm);
+
+                    if ((activeFragmentID == MESSSAGEVIWERFRAG) && (messageViewerFragment != null)) {
+                        messageViewerFragment.updateAdapterchanges();
+
+                    } else {
+                        increasetUnreadMessageCounter(icm.getSenderID());
+                        if (activeusersfragment != null) {
+                            activeusersfragment.updateActiveListContent();
+                        }
+                    }
+                    Log.d("INFO", "EOF, FILE REcived Completely");
+                }
+                /// SendUtil.sendFileChunkToRecivers(clientTable, fcmv2, tRecivers);
             }
+
         } catch (Exception ex) {
             recivedFilesTable.remove(new RecivedFileKey(fcmv2.getSenderID(), fcmv2.getFileName()));
-            Toast.makeText(getApplicationContext(), "Error While Recive file from Student: "+fcmv2.getSenderName()+", "+fcmv2.getSenderID(), Toast.LENGTH_SHORT).show();
+            Toast.makeText(getApplicationContext(), "Error While Recive file from Student: " + fcmv2.getSenderName() + ", " + fcmv2.getSenderID(), Toast.LENGTH_SHORT).show();
             ex.printStackTrace();
         }
     }
@@ -463,7 +548,6 @@ public class MainActivity extends AppCompatActivity
         ExamResultModel temp = new ExamResultModel();
         temp.setClientID(erm.getSenderID());
         temp.setClientName(erm.getSenderName());
-        temp.examFileName = erm.examFileName;
         int resourceID = getResourseId("u" + erm.getSenderID(), "drawable", getPackageName());
         if (resourceID == -1) {
             resourceID = R.drawable.unknown;
@@ -471,19 +555,19 @@ public class MainActivity extends AppCompatActivity
         temp.setClientImage(resourceID);
         temp.setExamMark(erm.getExamresult());
         temp.setStudentMark(erm.getStudentresult());
+        temp.examFileName = erm.examFileName;
 
         // TODO: 26/03/16 we should update row if it is exist
         examResultModels.add(temp);
-        if (activeFragmentID == 4) {
+        if (activeFragmentID == EXAMRESULTFRAG) {
             examResultViewerFragment.updateExamResultContent();
         } else {
-            // Toast toast = Toast.makeText(this.getApplicationContext(), temp.getClientName() + " Finish The Exam", Toast.LENGTH_SHORT);
-            // toast.show();
+
         }
 
     }
 
-    private void dealWithLikeMessage(SimpleTextMessage likem){
+    private void dealWithLikeMessage(SimpleTextMessage likem) {
         if (likem.getMessageType().equals("OK")) {
             ChatMessageModel chm = new ChatMessageModel(likem.getSenderName(), "", "OK", likem.getTextMessage(), false);
             chm.setSenderID(likem.getSenderID());
@@ -544,27 +628,39 @@ public class MainActivity extends AppCompatActivity
 
 
     private void dealWithStatusMessage(StatusMessage currSm) {
-        ClientModel cm = findCurrentUser(currSm.getUserID());
-        cm.setLastStatus(clientStatus[currSm.getStatus()]);
-        cm.setStatus(currSm.getStatus());
-        if (activeFragmentID == ACTIVEUSERSFRAG && activeusersfragment != null) {
-            activeusersfragment.updateActiveListContent();
-        }
+        try {
 
+            ClientModel cm = findCurrentUser(currSm.getUserID());
+            if (cm != null) {
+                if (cm.getStatus() != currSm.getStatus()) {
+                    cm.setLastStatus(clientStatus[currSm.getStatus()]);
+                    cm.setStatus(currSm.getStatus());
+                    if (activeFragmentID == ACTIVEUSERSFRAG && activeusersfragment != null) {
+                        activeusersfragment.updateActiveListContent();
+                    }
+                }
+            }
+        } catch (Exception ex) {
+
+        }
     }
 
     public void addNewActiveClient(UserLogin ul) {
-        int resourceID = getResourseId("u" + ul.getUserID(), "drawable", getPackageName());
-        if (resourceID == -1) {
-            resourceID = R.drawable.unknown;
-        }
-        ClientModel t = new ClientModel(ul.getUserID(), ul.getUserName(), resourceID);
-        t.setLastStatus(clientStatus[0]);
-        t.setStatus(0);
-        System.out.println();
-        if (!(ifUserExistUpdate(ul))) {
-            clientsList.add(t);
-            allStudentsLists.put(ul.getUserID(), new ArrayList<ChatMessageModel>());
+        if (!(ul.getUserID().equals(iam.getUserID()))) {
+
+            int resourceID = getResourseId("u" + ul.getUserID(), "drawable", getPackageName());
+            if (resourceID == -1) {
+                resourceID = R.drawable.unknown;
+            }
+            ClientModel t = new ClientModel(ul.getUserID(), ul.getUserName(), resourceID);
+            t.setLastStatus(clientStatus[0]);
+            t.setStatus(0);
+            System.out.println();
+            if (!(ifUserExistUpdate(ul))) {
+                clientsList.add(t);
+                allStudentsLists.put(ul.getUserID(), new ArrayList<ChatMessageModel>());
+            }
+           updateClientsList();
         }
     }
 
@@ -583,7 +679,7 @@ public class MainActivity extends AppCompatActivity
 
         }
 
-        return  false;
+        return false;
     }
 
     private boolean ifUserExistUpdate(String uID) {
@@ -608,14 +704,14 @@ public class MainActivity extends AppCompatActivity
 
     private void increasetUnreadMessageCounter(String userId) {
         ClientModel temp = findCurrentUser(userId);
-        if (temp !=null)
-        temp.unreadMsgCounter++;
+        if (temp != null)
+            temp.unreadMsgCounter++;
     }
 
     private void resetUnreadMessageCounter(String userId) {
         ClientModel temp = findCurrentUser(userId);
-        if (temp !=null)
-        temp.unreadMsgCounter = 0;
+        if (temp != null)
+            temp.unreadMsgCounter = 0;
     }
 
     @Override
@@ -633,6 +729,11 @@ public class MainActivity extends AppCompatActivity
 
     }
 
+    @Override
+    public void setLoginDetails(UserLogin u) {
+        this.loginDetail = u;
+    }
+
     private void showInvalidUserNameOrPassword() {
         runOnUiThread(new Runnable() {
             @Override
@@ -645,7 +746,7 @@ public class MainActivity extends AppCompatActivity
     @Override
     protected void onPause() {
         super.onPause();
-        //  Log.d("LIFE", "Activity pause");
+        Log.d("INFO", "Activity pause");
     }
 
     @Override
@@ -697,6 +798,29 @@ public class MainActivity extends AppCompatActivity
     }
 
     @Override
+    public void showImageViewer(String imagePath) {
+        fm = getFragmentManager();
+        // imgViewerFragment = (CmImageViewerFragment) fm.findFragmentByTag("IMGV");
+        if (imgViewerFragment == null) {
+            imgViewerFragment = new CmImageViewerFragment();
+
+        }
+        // imgViewerFragment.showImage(imagePath);
+        this.getSupportActionBar().hide();
+        ft = fm.beginTransaction();
+        imgViewerFragment.setImagePath(imagePath);
+        imgViewerFragment.client = client;
+        imgViewerFragment.iam = iam;
+        ft.replace(R.id.fragment_container, imgViewerFragment, "IMGV");
+        activeFragmentID = IMGVIWER;
+
+        //imgViewerFragment.showImage(imagePath);
+        ft.addToBackStack(null);
+        ft.commit();
+        // mListener.onFragmentInteraction(IMGVIWER);
+    }
+
+    @Override
     public void addNewTextMessageFromMessageViewer(SimpleTextMessage sm) {
         // no longer needed
      /*   if (sm.getMessageType().equals("TXT")) {
@@ -719,6 +843,7 @@ public class MainActivity extends AppCompatActivity
 
     @Override
     protected void onRestart() {
+        Log.d("INFO", "On Restart");
         super.onRestart();
         try {
 
@@ -726,8 +851,60 @@ public class MainActivity extends AppCompatActivity
         } catch (Exception e) {
             e.printStackTrace();
         }
+
     }
 
+
+
+    @Override
+    protected void onStart() {
+        Log.d("INFO","onStart");
+        super.onStart();
+        onStartIni();
+    }
+
+    @Override
+    protected void onStop() {
+        Log.d("INFO","onStop");
+        super.onStop();
+        messageService.setsBounded(false);
+    }
+
+    private void onStartIni() {
+       // super.onStart();
+        Intent intent = new Intent(this, MessageService.class);
+        bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE);
+
+        if (mBound) {
+            Log.d("INFO", "bounded with service");
+            if ((messageService.isClientOnline())) {
+                Log.d("INFO", "Client Online");
+
+                messageService.setsBounded(true);
+                this.client = messageService.getClient();
+                this.iam = messageService.getIam();
+                this.allStudentsLists = messageService.getAllStudentsLists();
+                this.clientsList = messageService.getClientsList();
+                messageService.setActivity(this);
+
+
+                if((client ==null) && (iam ==null)){
+                    prepareConnection();
+                    showLoginFragment();
+                   // new Thread(this).start();
+
+                }
+
+            }
+        } else {
+            Log.d("INFO", "No service to bound");
+
+            prepareConnection();
+            showLoginFragment();
+
+        }
+        Log.i("life", "Bind To Service");
+    }
 
     public void ShowMonitorViewer(String[] receivers) {
         ft = fm.beginTransaction();
@@ -739,21 +916,23 @@ public class MainActivity extends AppCompatActivity
         monitorFragment.setReceivers(receivers);
         monitorFragment.setClient(client);
         ft.replace(R.id.fragment_container, monitorFragment, "MONITOR");
-        activeFragmentID = MONITORFRAG;
+        activeFragmentID = 4;
         ft.addToBackStack(null);
         ft.commit();
 
     }
 
-    public void ShowMessagesViewer(String useriD) {
+    public void ShowMessagesViewer(ClientModel clientModel) {
         ft = fm.beginTransaction();
         if (messageViewerFragment == null) {
             messageViewerFragment = new MessageViewerFragment();
         }
         messageViewerFragment.setUserlogin(iam);
         messageViewerFragment.setClient(client);
+        String useriD = clientModel.getClientID();
         messageViewerFragment.setReciverID(useriD);
         //  List<ChatMessageModel> temp = SendUtil.getClientUnreadMessages(useriD, chatMessageModelList);
+        messageViewerFragment.setReciverClient(clientModel);
         messageViewerFragment.setMessagesList(allStudentsLists.get(useriD));
         ft.replace(R.id.fragment_container, messageViewerFragment, "VIEWMSG");
         activeFragmentID = MESSSAGEVIWERFRAG;
@@ -767,4 +946,58 @@ public class MainActivity extends AppCompatActivity
         chatMessageModelList.add(newCml);
 
     }
+
+
+
+
+    @Override
+    public void updateMessageViewer(String uID) {
+        try {
+            if ((activeFragmentID == MESSSAGEVIWERFRAG) && (messageViewerFragment != null)) {
+                Log.d("info", " Display on Message Viewer");
+                messageViewerFragment.updateMessageListContent();
+
+            } else {
+                Log.d("info", "Display Message On Counter Only");
+                increasetUnreadMessageCounter(uID);
+                if (activeusersfragment != null) {
+                    activeusersfragment.updateActiveListContent();
+                }
+
+            }
+        } catch (Exception ex) {
+
+        }
+    }
+
+    @Override
+    public void showExamViewer(FileChunkMessageV2 fcmv2, List<QuestionItem> tQuestionsList) {
+
+    }
+
+    @Override
+    public void updateClientsList() {
+        Log.d("Info","try to update clients list frag ID :" + activeFragmentID);
+        try {
+            if (activeFragmentID == ACTIVEUSERSFRAG ) {
+
+                activeusersfragment.updateActiveListContent();
+                Log.d("Info","update clients list");
+
+            }
+        } catch (Exception ex) {
+            Log.d("Info","error while update");
+            ex.printStackTrace();
+        }
+    }
+
+    @Override
+    public void updateExamResultViewer(List<ExamResultModel> examResultModels) {
+        examResultViewerFragment.setL1(examResultModels);
+        if (activeFragmentID == EXAMRESULTFRAG) {
+            examResultViewerFragment.updateExamResultContent();
+        }
+    }
+
+
 }

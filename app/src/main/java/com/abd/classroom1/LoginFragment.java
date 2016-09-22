@@ -96,6 +96,8 @@ public class LoginFragment extends Fragment {
                 EditText idText = (EditText) getActivity().findViewById(R.id.user_id_editext);
                 String userID = idText.getText().toString();
                 if(client !=null && client.isConnected()) {
+                    UserLogin a1 =  new UserLogin(userID, "TEACHER");
+                    mListener.setLoginDetails(a1);
                     client.sendTCP(new UserLogin(userID, "TEACHER"));
                 }
             }
@@ -157,6 +159,7 @@ public class LoginFragment extends Fragment {
         // TODO: Update argument type and name
         public void onFragmentInteraction(Uri uri);
         public void setSuccessfulLogin(UserLogin ul);
+        public void setLoginDetails(UserLogin u);
         public void researchforServer();
     }
 

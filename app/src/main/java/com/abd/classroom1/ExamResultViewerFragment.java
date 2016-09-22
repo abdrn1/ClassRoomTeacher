@@ -97,7 +97,7 @@ public class ExamResultViewerFragment extends Fragment {
 
     @Override
     public void onDetach() {
-        mListener.onFragmentInteraction(-4);
+      //  mListener.onFragmentInteraction(-4);
         super.onDetach();
         mListener = null;
     }

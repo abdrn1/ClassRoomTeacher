@@ -10,7 +10,7 @@ public class ClientModel {
     private boolean clientSelected = false;
     private Integer clientImage;
     private int status = 0;
-    int unreadMsgCounter = 0;
+    public int unreadMsgCounter = 0;
 
     public int getStatus() {
         return status;

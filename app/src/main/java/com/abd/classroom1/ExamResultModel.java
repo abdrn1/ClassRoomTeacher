@@ -20,6 +20,14 @@ public class ExamResultModel {
         this.clientName = clientName;
     }
 
+    public String getExamFileName() {
+        return examFileName;
+    }
+
+    public void setExamFileName(String examFileName) {
+        this.examFileName = examFileName;
+    }
+
     public String getClientName() {
         return clientName;
     }

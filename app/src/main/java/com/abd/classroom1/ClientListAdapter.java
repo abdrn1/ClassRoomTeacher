@@ -64,7 +64,7 @@ public class ClientListAdapter extends ArrayAdapter implements View.OnClickListe
                 public void onClick(View v) {
                     ClientModel element = (ClientModel) viewHolder.checkbox
                             .getTag();
-                    theActivity.ShowMessagesViewer(element.getClientID());
+                    theActivity.ShowMessagesViewer(element);
                     element.unreadMsgCounter = 0;
                     //  Toast.makeText(v.getContext(),
                     //        "Click View Message : " + element.getClientID(), Toast.LENGTH_LONG).show();
@@ -76,7 +76,7 @@ public class ClientListAdapter extends ArrayAdapter implements View.OnClickListe
                 public void onClick(View v) {
                     ClientModel element = (ClientModel) viewHolder.checkbox
                             .getTag();
-                    theActivity.ShowMessagesViewer(element.getClientID());
+                    theActivity.ShowMessagesViewer(element);
                     element.unreadMsgCounter = 0;
 
                     // Toast.makeText(v.getContext(),
@@ -112,7 +112,7 @@ public class ClientListAdapter extends ArrayAdapter implements View.OnClickListe
 
     public interface OnClientListAdapterInteraction {
         // TODO: Update argument type and name
-        public void ShowMessagesViewer(String useriD);
+        void ShowMessagesViewer(ClientModel clientModel);
 
     }
 

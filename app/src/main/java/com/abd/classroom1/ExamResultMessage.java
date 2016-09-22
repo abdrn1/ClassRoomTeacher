@@ -20,6 +20,14 @@ public class ExamResultMessage {
         this.studentresult = studentresult;
     }
 
+    public String getExamFileName() {
+        return examFileName;
+    }
+
+    public void setExamFileName(String examFileName) {
+        this.examFileName = examFileName;
+    }
+
     public double getExamresult() {
         return examresult;
     }

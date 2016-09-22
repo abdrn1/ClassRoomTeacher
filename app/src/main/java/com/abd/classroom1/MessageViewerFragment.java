@@ -18,8 +18,10 @@ import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.EditText;
 import android.widget.ImageButton;
+import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.PopupMenu;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.esotericsoftware.kryonet.Client;
@@ -69,6 +71,7 @@ public class MessageViewerFragment extends Fragment {
     private List<ChatMessageModel> l1;
     private MessagesListAdapter mLAdapter;
     private String capturedImagePath="";
+    private ClientModel reciverClient;
 
 
     public MessageViewerFragment() {
@@ -114,8 +117,17 @@ public class MessageViewerFragment extends Fragment {
         ImageButton btnsendfile = (ImageButton) getActivity().findViewById(R.id.btn_msgv_sendfile);
         ImageButton btnCaptureImage = (ImageButton) getActivity().findViewById(R.id.btn_msgv_captureimage);
         ImageButton btnlike = (ImageButton)getActivity().findViewById(R.id.btn_like);
+        ImageView clientImage =(ImageView)getActivity().findViewById(R.id.useimageiv);
+        TextView clientName =(TextView)getActivity().findViewById(R.id.username_tv);
+
+        clientImage.setImageResource(reciverClient.getClientImage());
+        clientName.setText(" :: : "+reciverClient.getClientName());
         GeneralUtil.buttonEffect(btnsendfile);
         GeneralUtil.buttonEffect(btnsend);
+        GeneralUtil.buttonEffect(btnlike);
+        GeneralUtil.buttonEffect(btnCaptureImage);
+
+
         listview.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
@@ -127,7 +139,8 @@ public class MessageViewerFragment extends Fragment {
                    // String fname = (l1.get(position)).getSimpleMessage();
                    // String savePath = Environment.getExternalStorageDirectory().getPath();
                     savePath = (l1.get(position)).getFilepath();
-                    GeneralUtil.openImage(getActivity(), savePath);
+                   // GeneralUtil.openImage(getActivity(), savePath);
+                    mListener.showImageViewer(savePath);
                 }
 
             }
@@ -146,9 +159,13 @@ public class MessageViewerFragment extends Fragment {
                         }else if(item.getItemId() == R.id.show_on_monitor){
                                 showOnBoard(position);
                         }else if(item.getItemId() == R.id.zoomIN){
-                            client.sendTCP(new CommandsMessages(1.2));
+                            client.sendTCP(new CommandsMessages(1.3));
                         }else if(item.getItemId() == R.id.zoomOUT){
-                            client.sendTCP(new CommandsMessages(0.9));
+                            client.sendTCP(new CommandsMessages(0.8));
+                        }else if(item.getItemId() == R.id.rotateIMG){
+                            CommandsMessages comM = new CommandsMessages();
+                            comM.setCommnadType(1);
+                            client.sendTCP(comM);
                         }
                         return true;
                     }
@@ -163,6 +180,7 @@ public class MessageViewerFragment extends Fragment {
             public void onClick(View v) {
                 if(SendUtil.checkConnection(client,iam)){
                     sendOkMessage();
+                    updateMessageListContent();
                 }else{
                     Toast.makeText(getActivity(), "Connection Failed", Toast.LENGTH_SHORT).show();
                 }
@@ -220,6 +238,14 @@ public class MessageViewerFragment extends Fragment {
 
 
 
+    }
+
+    public ClientModel getReciverClient() {
+        return reciverClient;
+    }
+
+    public void setReciverClient(ClientModel reciverClient) {
+        this.reciverClient = reciverClient;
     }
 
     public void setMessagesList(List<ChatMessageModel> ll) {
@@ -322,8 +348,13 @@ public class MessageViewerFragment extends Fragment {
             fblock.setFileName(FilenameUtils.getName(path));
             try {
                 Log.d("INFO", "READ AND SEND FILE HERE");
-                SendUtil.readAndSendFile(getActivity(), path, client, iam, new String[]{reciverID}, FileChunkMessageV2.FILE);
-                addNewImageMessage(fblock, path, true);
+                if(SendUtil.checkConnection(client,iam)) {
+                    SendUtil.readAndSendFile(getActivity(), path, client, iam, new String[]{reciverID}, FileChunkMessageV2.FILE);
+                    addNewImageMessage(fblock, path, true);
+                }else{
+                    Toast.makeText(getActivity(), "Connection Failed", Toast.LENGTH_SHORT).show();
+
+                }
             } catch (IOException e) {
                 Toast.makeText(getActivity(),
                         "Error While Sending file", Toast.LENGTH_SHORT).show();
@@ -335,9 +366,15 @@ public class MessageViewerFragment extends Fragment {
             //Bundle extras = data.getExtras();
             //Bitmap imageBitmap = (Bitmap) extras.get("data");
             //sendCapturedPicToClients(imageBitmap);
-            SendCapturedImageFile();
-            Toast.makeText(getActivity(),
-                    "Image Captured And Sent Completely", Toast.LENGTH_SHORT).show();
+            if(SendUtil.checkConnection(client,iam)) {
+                SendCapturedImageFile();
+                Toast.makeText(getActivity(),
+                        "Image Captured And Sent Completely", Toast.LENGTH_SHORT).show();
+            }else{
+                Toast.makeText(getActivity(), "Connection Failed", Toast.LENGTH_SHORT).show();
+
+            }
+
 
         }
     }
@@ -447,6 +484,9 @@ public class MessageViewerFragment extends Fragment {
             ChatMessageModel chm = new ChatMessageModel(simplem.getSenderName(), "", "TXT", simplem.getTextMessage(), fromMe);
             l1.add(chm);
 
+        }else if (simplem.getMessageType().equals("OK")) {
+            ChatMessageModel chm = new ChatMessageModel(simplem.getSenderName(), "", "OK", "", fromMe);
+            l1.add(chm);
         }
 
     }
@@ -528,7 +568,7 @@ public class MessageViewerFragment extends Fragment {
 
     @Override
     public void onDetach() {
-        mListener.onFragmentInteraction(-3);
+      //  mListener.onFragmentInteraction(-3);
         super.onDetach();
         mListener = null;
     }
@@ -547,6 +587,7 @@ public class MessageViewerFragment extends Fragment {
         // TODO: Update argument type and name
         // public void onFragmentInteraction(Uri uri);
         void onFragmentInteraction(int fragmentID);
+        void showImageViewer(String imagePath);
 
         void addNewTextMessageFromMessageViewer(SimpleTextMessage sm);
     }

@@ -23,6 +23,7 @@
     <string name="show_exam_result">Exam Results</string>
     <string name="active_users">Students</string>
     <string name="connectionfail">Connection Failed</string>
+    <string name="message_from">Message from</string>
 
     <string-array name="client_status">
         <item>On Line</item>
@@ -34,6 +35,7 @@
     <string name="show_on_monitor">Monitor Display</string>
     <string name="zoom_in">Zoom In</string>
     <string name="zoom_out">Zoom Out</string>
+    <string name="rotat_img">Rotate</string>
 
     <string name="exit_app">sign out</string>
 </resources>

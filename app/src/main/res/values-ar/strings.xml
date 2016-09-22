@@ -22,6 +22,7 @@
     <string name="finish_exam">انهاء الاختبار</string>
     <string name="show_exam_result">اظهار نتيجة الاختبار</string>
     <string name="active_users">الطلاب</string>
+    <string name="message_from">رسالة جديدة</string>
 
     <string-array name="client_status">
         <item>متوفر</item>
@@ -33,6 +34,7 @@
     <string name="show_on_monitor">عرض على الشاشة</string>
     <string name="zoom_in">تكبير</string>
     <string name="zoom_out">تصغير</string>
+    <string name="rotat_img">تدوير</string>
 
     <string name="exit_app">تسجيل خروج</string>
 

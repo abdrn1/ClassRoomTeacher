@@ -5,7 +5,6 @@ import android.app.Fragment;
 import android.content.Intent;
 import android.database.Cursor;
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
@@ -68,7 +67,8 @@ public class ActiveUsersFragment extends Fragment {
     private String mParam2;
     private String mCurrentPhotoPath;
     private OnFragmentInteractionListener mListener;
-    private String capturedImagePath="";
+    private String capturedImagePath = "";
+    private boolean checkAllFlag = true;
 
     public ActiveUsersFragment() {
         // Required empty public constructor
@@ -141,6 +141,7 @@ public class ActiveUsersFragment extends Fragment {
         ImageButton unlocksend = (ImageButton) getActivity().findViewById(R.id.btnunLock);
         ImageButton monitorBtn = (ImageButton) getActivity().findViewById(R.id.btnMonitor);
         ImageButton captureImage = (ImageButton) getActivity().findViewById(R.id.btn_capturepic);
+        ImageButton checkAll = (ImageButton) getActivity().findViewById(R.id.check_all);
 
         final EditText inputMsg = (EditText) getActivity().findViewById(R.id.inputMsg);
         // Give Button Animation effect On press Button
@@ -150,13 +151,27 @@ public class ActiveUsersFragment extends Fragment {
         GeneralUtil.buttonEffect(locksend);
         GeneralUtil.buttonEffect(unlocksend);
         GeneralUtil.buttonEffect(captureImage);
+        GeneralUtil.buttonEffect(checkAll);
+        GeneralUtil.buttonEffect(monitorBtn);
 
         // end
+        checkAll.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                for (ClientModel aa : l1) {
+                    aa.setClientSelected(checkAllFlag);
+                }
+                checkAllFlag = !checkAllFlag;
+
+                updateActiveListContent();
+            }
+        });
+
         listview.setOnItemClickListener(new AdapterView.OnItemClickListener() {
 
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                Log.d("Hello","Item Clicked");
+                Log.d("Hello", "Item Clicked");
                 Toast.makeText(getActivity().getApplicationContext(), "hello : " + l1.get(position).getClientName(), Toast.LENGTH_SHORT).show();
             }
         });
@@ -164,25 +179,26 @@ public class ActiveUsersFragment extends Fragment {
         sendfile.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if(SendUtil.checkConnection(client,iam)) {
-                    Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
-                    intent.setType("file/*");
-                    startActivityForResult(intent, FILE_SELECT_CODE);
+                if (SendUtil.checkConnection(client, iam)) {
+                   // Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+                   // intent.setType("file/*");
+                   // startActivityForResult(intent, FILE_SELECT_CODE);
+                    openFolder();
                     Toast.makeText(getActivity(),
                             "INfo Message", Toast.LENGTH_LONG).show();
-                }else{
-                    Toast.makeText(getActivity(), "Connection Failed", Toast.LENGTH_SHORT);
+                } else {
+                    Toast.makeText(getActivity(), "Connection Failed", Toast.LENGTH_SHORT).show();
                 }
             }
         });
         captureImage.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if(SendUtil.checkConnection(client,iam)) {
-                   // takePicture();
+                if (SendUtil.checkConnection(client, iam)) {
+                    // takePicture();
                     captureAndSavePicture();
-                }else{
-                    Toast.makeText(getActivity(), "Connection Failed", Toast.LENGTH_SHORT);
+                } else {
+                    Toast.makeText(getActivity(), "Connection Failed", Toast.LENGTH_SHORT).show();
                 }
 
             }
@@ -191,7 +207,7 @@ public class ActiveUsersFragment extends Fragment {
         btnsend.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if (SendUtil.checkConnection(client,iam)) {
+                if (SendUtil.checkConnection(client, iam)) {
                     String tempMsg = inputMsg.getText().toString();
                     //l1.add(new ClientModel("5", "ZAKI", R.drawable.a3));
                     //clientListAdapter.notifyDataSetChanged();
@@ -208,10 +224,10 @@ public class ActiveUsersFragment extends Fragment {
         locksend.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if (SendUtil.checkConnection(client,iam)) {
+                if (SendUtil.checkConnection(client, iam)) {
                     Toast.makeText(getActivity().getApplicationContext(), "lock sent", Toast.LENGTH_LONG).show();
                     sendLockMessage(true);
-                }else {
+                } else {
                     Toast.makeText(getActivity().getApplicationContext(), "your disconnected", Toast.LENGTH_SHORT).show();
                 }
             }
@@ -219,10 +235,10 @@ public class ActiveUsersFragment extends Fragment {
         unlocksend.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if (SendUtil.checkConnection(client,iam)) {
+                if (SendUtil.checkConnection(client, iam)) {
                     Toast.makeText(getActivity().getApplicationContext(), "lock sent", Toast.LENGTH_LONG).show();
                     sendLockMessage(false);
-                }else {
+                } else {
                     Toast.makeText(getActivity().getApplicationContext(), "your disconnected", Toast.LENGTH_SHORT).show();
                 }
             }
@@ -235,7 +251,7 @@ public class ActiveUsersFragment extends Fragment {
             public void onClick(View v) {
                 if (SendUtil.checkConnection(client, iam)) {
                     Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
-                    intent.setType("file/xml");
+                    intent.setType("file/*");
                     startActivityForResult(intent, EXAM_SELECT_CODE);
                     Toast.makeText(getActivity(),
                             "Select XML files Only", Toast.LENGTH_LONG).show();
@@ -251,7 +267,7 @@ public class ActiveUsersFragment extends Fragment {
             public void onClick(View v) {
                 if (SendUtil.checkConnection(client, iam)) {
                     mListener.showMonitor(getSelectedRecivers());
-                }else {
+                } else {
                     Toast.makeText(getActivity().getApplicationContext(), "your disconnected", Toast.LENGTH_SHORT).show();
                 }
             }
@@ -279,6 +295,7 @@ public class ActiveUsersFragment extends Fragment {
 
         if (requestCode == FILE_SELECT_CODE && resultCode == Activity.RESULT_OK
                 && null != data) {
+            try {
             final Uri uri = data.getData();
             String path = getRealPathFromURI(uri);
             Log.d("INFO", path);
@@ -295,11 +312,16 @@ public class ActiveUsersFragment extends Fragment {
             fblock.setSenderID(iam.getUserID());
             fblock.setFileName(FilenameUtils.getName(path));
             fblock.setRecivers(getSelectedRecivers());
-            try {
+
                 Log.d("INFO", "READ AND SEND FILE HERE");
-                SendUtil.readAndSendFile(getActivity(), path, client, iam, getSelectedRecivers(), FileChunkMessageV2.FILE);
-                Log.d("OK", "Convert FileTO MODEl");
-                SendUtil.convertFileChunkToChatMessageModl(getActivity(), path, fblock, allStudentsLists);
+                if (SendUtil.checkConnection(client, iam)) {
+                    SendUtil.readAndSendFile(getActivity(), path, client, iam, getSelectedRecivers(), FileChunkMessageV2.FILE);
+                    Log.d("OK", "Convert FileTO MODEl");
+                    SendUtil.convertFileChunkToChatMessageModl(getActivity(), path, fblock, allStudentsLists);
+                } else {
+                    Toast.makeText(getActivity(), "Connection Failed", Toast.LENGTH_SHORT).show();
+
+                }
 
             } catch (IOException e) {
                 Toast.makeText(getActivity(),
@@ -310,6 +332,7 @@ public class ActiveUsersFragment extends Fragment {
             }
         } else if (requestCode == EXAM_SELECT_CODE && resultCode == Activity.RESULT_OK
                 && null != data) {
+            try {
             final Uri uri = data.getData();
             String path = getRealPathFromURI(uri);
             Log.d("INFO", path);
@@ -323,10 +346,13 @@ public class ActiveUsersFragment extends Fragment {
             fblock.setSenderName(iam.getUserName());
             fblock.setSenderID(iam.getUserID());
 
-            //  client.sendTCP(fblock);
-            try {
                 Log.d("INFO", "READ AND SEND EXAM HERE");
-                SendUtil.readAndSendFile(getActivity(), path, client, iam, getSelectedRecivers(), FileChunkMessageV2.EXAM);
+                if (SendUtil.checkConnection(client, iam)) {
+                    SendUtil.readAndSendFile(getActivity(), path, client, iam, getSelectedRecivers(), FileChunkMessageV2.EXAM);
+                } else {
+                    Toast.makeText(getActivity(), "Connection Failed", Toast.LENGTH_SHORT).show();
+
+                }
 
             } catch (IOException e) {
                 Toast.makeText(getActivity(),
@@ -336,22 +362,36 @@ public class ActiveUsersFragment extends Fragment {
 
             }
 
-        }else if(resultCode == MONITOR_CODE && resultCode == Activity.RESULT_OK){
+        } else if (resultCode == MONITOR_CODE && resultCode == Activity.RESULT_OK) {
 
         } else if (requestCode == REQUEST_TAKE_PHOTO && resultCode == Activity.RESULT_OK) {
-           // Bundle extras = data.getExtras();
-           // Bitmap imageBitmap = (Bitmap) extras.get("data");
-            //sendCapturedPicToClients(imageBitmap);
-            //sendCapturedPicFileToClients(capturedImagePath);
-            SendCauptureImageAsFile(capturedImagePath);
-            Toast.makeText(getActivity(),
-                    "Image Captured And Sent Completely", Toast.LENGTH_SHORT).show();
+            try {
+                if (SendUtil.checkConnection(client, iam)) {
+                    SendCauptureImageAsFile(capturedImagePath);
+                    Toast.makeText(getActivity(),
+                            "Image Captured And Sent Completely", Toast.LENGTH_SHORT).show();
+                } else {
+                    Toast.makeText(getActivity(), "Connection Failed", Toast.LENGTH_SHORT).show();
+
+                }
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
 
         }
 
     }
 
-    private void SendCauptureImageAsFile(String cappath){
+    public void openFolder()
+    {
+        Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+        Uri uri = Uri.parse(Environment.getExternalStorageDirectory().getPath()
+                + "/Classroom/");
+        intent.setDataAndType(uri, "file/*");
+        startActivityForResult(Intent.createChooser(intent, "Open folder"),FILE_SELECT_CODE);
+    }
+
+    private void SendCauptureImageAsFile(String cappath) {
         FileChunkMessageV2 fblock = new FileChunkMessageV2();
         fblock.setSenderName(iam.getUserName());
         fblock.setSenderID(iam.getUserID());
@@ -402,7 +442,6 @@ public class ActiveUsersFragment extends Fragment {
     }
 
 
-
     private void writeByteImageTofile(byte[] imageBytes, String imagefileName) {
         String savepath = Environment.getExternalStorageDirectory().getPath();
         savepath = savepath + "/Classroom/pics/";
@@ -447,7 +486,7 @@ public class ActiveUsersFragment extends Fragment {
         currTm.setRecivers(recivers);
         client.sendTCP(currTm);
 
-        if (chatMessageModelList != null) {
+        if (allStudentsLists != null) {
             // TODO: 27/03/16  this must saved in DB 
             SendUtil.convertTextMessageToChatMessageModl(currTm, allStudentsLists);
         }
@@ -467,7 +506,7 @@ public class ActiveUsersFragment extends Fragment {
         Log.i("Lock", "Lock Message send");
     }
 
-    private String[] getSelectedRecivers(){
+    private String[] getSelectedRecivers() {
         Log.d("INFO", "Get selected recivers");
         String[] recivers = null;
         List<String> selectedClients = new ArrayList<>();
@@ -481,23 +520,19 @@ public class ActiveUsersFragment extends Fragment {
             selectedClients.toArray(recivers);
         }
 
-        return  recivers;
+        return recivers;
 
     }
 
 
     public void updateActiveListContent() {
-        try{
-            getActivity().runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
-                    clientListAdapter.notifyDataSetChanged();
-                }
-            });
 
-        }catch (Exception ex){
-           ex.printStackTrace();
-        }
+        getActivity().runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                clientListAdapter.notifyDataSetChanged();
+            }
+        });
 
 
     }
@@ -527,7 +562,7 @@ public class ActiveUsersFragment extends Fragment {
         String date = dateFormat.format(new Date());
         String photoFile = "CaptureCMS_" + date + ".jpg";
 
-         capturedImagePath = saveDirectoryPath + photoFile;
+        capturedImagePath = saveDirectoryPath + photoFile;
 
         File NewImageFile = new File(capturedImagePath);
         try {
@@ -542,8 +577,6 @@ public class ActiveUsersFragment extends Fragment {
         startActivityForResult(cameraIntent, REQUEST_TAKE_PHOTO);
 
     }
-
-
 
 
     @Override
@@ -575,7 +608,7 @@ public class ActiveUsersFragment extends Fragment {
 
     @Override
     public void onDetach() {
-        mListener.onFragmentInteraction(-2);
+        //  mListener.onFragmentInteraction(-2);
         super.onDetach();
         mListener = null;
     }
@@ -585,7 +618,7 @@ public class ActiveUsersFragment extends Fragment {
      * fragment to allow an interaction in this fragment to be communicated
      * to the activity and potentially other fragments contained in that
      * activity.
-     * <p>
+     * <p/>
      * See the Android Training lesson <a href=
      * "http://developer.android.com/training/basics/fragments/communicating.html"
      * >Communicating with Other Fragments</a> for more information.

@@ -36,7 +36,7 @@ public class FileSenderThreadV2 extends Thread {
     public void run() {
         Log.d("INFO", "Helllllloooooo");
         try {
-            aFile = new RandomAccessFile(path, "rw");
+            aFile = new RandomAccessFile(path, "r");
             Log.d("INFO", "RANDOM FILE Created");
             chunkcounter = 0;
             ByteArrayOutputStream bos = new ByteArrayOutputStream();
@@ -69,6 +69,7 @@ public class FileSenderThreadV2 extends Thread {
                 while(client.getTcpWriteBufferSize()>8000){
                     sleep(50);
                 }
+                Log.d("INFO", "SEND FILE CHUnk");
                 client.sendTCP(chunkFromFile);
             }
             FileChunkMessageV2 endofFile = new FileChunkMessageV2();
@@ -84,7 +85,7 @@ public class FileSenderThreadV2 extends Thread {
             aFile.close();
 
             if (endofFile.getChunkCounter() == -1)
-                Log.d("SEND", "END OF CHunks");
+                Log.d("INFO", "END OF CHunks");
 
         } catch (Exception e) {
             Log.d("Error", "Helllllloooooo");
