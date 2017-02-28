@@ -35,6 +35,7 @@
     <string name="zoom_in">تكبير</string>
     <string name="zoom_out">تصغير</string>
     <string name="rotat_img">تدوير</string>
+    <string name="img_viewer">عارض الملفات</string>
 
     <string name="exit_app">تسجيل خروج</string>
 

@@ -209,7 +209,8 @@ public class MessageListener extends Listener {
             String clientStatus[] = ownerService.getResources().getStringArray(R.array.client_status);
 
             int resourceID = getResourseId("u" + ul.getUserID(), "drawable", ownerService.getPackageName());
-            if (resourceID == -1) {
+            Log.d("IMGID","Image ID :" +  resourceID);
+            if ((resourceID == -1) || (resourceID == 0)) {
                 resourceID = R.drawable.unknown;
             }
             ClientModel t = new ClientModel(ul.getUserID(), ul.getUserName(), resourceID);
@@ -235,13 +236,14 @@ public class MessageListener extends Listener {
     private boolean ifUserExistUpdate(UserLogin curr) {
         for (ClientModel ul1 : clientsList) {
             if (curr.getUserID().equals(ul1.getClientID())) {
-                ul1.setClientName(curr.getUserName());
+                // i will stop update of user
+                /*ul1.setClientName(curr.getUserName());
                 int resourceID = getResourseId("u" + curr.getUserID(), "drawable", ownerService.getPackageName());
                 if (resourceID == -1) {
                     resourceID = R.drawable.unknown;
                 }
                 // TODO: 25/03/16 re edit this after solve profile image problem
-                ul1.setClientImage(resourceID);
+                ul1.setClientImage(resourceID);*/
                 ul1.setLastStatus(clientStatus[0]);
                 ul1.setStatus(0);
                 return true;

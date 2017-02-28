@@ -10,6 +10,10 @@
             android:id="@+id/mi_exam_result"
             android:icon="@drawable/l1examresult"
             android:title="@string/show_exam_result" />
+        <item
+            android:id="@+id/mi_img_viewer"
+            android:icon="@drawable/img_viewer"
+            android:title="@string/img_viewer" />
 
     </group>
 

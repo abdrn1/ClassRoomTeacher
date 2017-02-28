@@ -72,6 +72,7 @@ public class MessageViewerFragment extends Fragment {
     private MessagesListAdapter mLAdapter;
     private String capturedImagePath="";
     private ClientModel reciverClient;
+    private FileChunkMessageV2 fileToSend;
 
 
     public MessageViewerFragment() {
@@ -325,6 +326,11 @@ public class MessageViewerFragment extends Fragment {
     }
 
     private void sendFile() {
+        fileToSend = new FileChunkMessageV2();
+        fileToSend.setRecivers(new String[]{reciverID});
+        fileToSend.setSenderName(iam.getUserName());
+        fileToSend.setSenderID(iam.getUserID());
+
         Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
         intent.setType("file/*");
         startActivityForResult(intent, FILE_SELECT_CODE);
@@ -342,15 +348,14 @@ public class MessageViewerFragment extends Fragment {
             // String path = getRealPathFromURI(uri);
             Toast.makeText(getActivity(), "File: " + path +
                     ", Loadded Copletely", Toast.LENGTH_SHORT).show();
-            FileChunkMessageV2 fblock = new FileChunkMessageV2();
-            fblock.setSenderName(iam.getUserName());
-            fblock.setSenderID(iam.getUserID());
-            fblock.setFileName(FilenameUtils.getName(path));
+           // FileChunkMessageV2 fblock = new FileChunkMessageV2();
+
+            fileToSend.setFileName(FilenameUtils.getName(path));
             try {
                 Log.d("INFO", "READ AND SEND FILE HERE");
                 if(SendUtil.checkConnection(client,iam)) {
-                    SendUtil.readAndSendFile(getActivity(), path, client, iam, new String[]{reciverID}, FileChunkMessageV2.FILE);
-                    addNewImageMessage(fblock, path, true);
+                    SendUtil.readAndSendFile(getActivity(), path, client, iam, fileToSend.getRecivers(), FileChunkMessageV2.FILE);
+                    addNewImageMessage(fileToSend, path, true);
                 }else{
                     Toast.makeText(getActivity(), "Connection Failed", Toast.LENGTH_SHORT).show();
 

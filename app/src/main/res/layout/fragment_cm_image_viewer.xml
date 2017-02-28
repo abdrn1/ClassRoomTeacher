@@ -58,6 +58,16 @@
             android:layout_marginStart="5dp"
             android:background="@drawable/squarshape"
             android:src="@drawable/l1television" />
+        <ImageButton
+            android:id="@+id/img_open_external"
+            android:layout_width="42dp"
+            android:layout_height="45dp"
+            android:layout_weight="1"
+            android:visibility="gone"
+            android:layout_marginLeft="5dp"
+            android:layout_marginStart="5dp"
+            android:background="@drawable/squarshape"
+            android:src="@drawable/img_viewer" />
 
 
     </LinearLayout>

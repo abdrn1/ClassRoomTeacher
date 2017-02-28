@@ -65,8 +65,10 @@ public class MonitorView implements MonitorFragment.ScreenshotListener {
                             FragmentTransaction ft = fm.beginTransaction();
                             if (singleMonitorFragment == null) {
                                 singleMonitorFragment = new SingleMonitorFragment();
+                                singleMonitorFragment.client = client;
                             }
                             singleMonitorFragment.setScreenshot(bm);
+                            singleMonitorFragment.client =client;
                             ft.replace(R.id.fragment_container, singleMonitorFragment, "monitor");
                             ft.addToBackStack(null);
                             ft.commit();

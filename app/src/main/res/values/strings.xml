@@ -36,6 +36,7 @@
     <string name="zoom_in">Zoom In</string>
     <string name="zoom_out">Zoom Out</string>
     <string name="rotat_img">Rotate</string>
+    <string name="img_viewer">File Viewer</string>
 
     <string name="exit_app">sign out</string>
 </resources>

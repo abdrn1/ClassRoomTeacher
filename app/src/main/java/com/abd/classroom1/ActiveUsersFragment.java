@@ -61,6 +61,7 @@ public class ActiveUsersFragment extends Fragment {
     private ClientListAdapter clientListAdapter;
     private Client client;
     private UserLogin iam;
+    private String[] currRecivers;
     private Hashtable<String, List<ChatMessageModel>> allStudentsLists;
     // TODO: Rename and change types of parameters
     private String mParam1;
@@ -69,6 +70,7 @@ public class ActiveUsersFragment extends Fragment {
     private OnFragmentInteractionListener mListener;
     private String capturedImagePath = "";
     private boolean checkAllFlag = true;
+    private FileChunkMessageV2 fileToSend;
 
     public ActiveUsersFragment() {
         // Required empty public constructor
@@ -128,10 +130,14 @@ public class ActiveUsersFragment extends Fragment {
     @Override
     public void onActivityCreated(Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
+        Log.d("LIFE", "onActivityCreated()");
 
         listview = (ListView) getActivity().findViewById(R.id.clients_listview);
         // l1 = new ArrayList<>();
-        clientListAdapter = new ClientListAdapter(getActivity(), l1);
+        if (clientListAdapter == null) {
+            clientListAdapter = new ClientListAdapter(getActivity(), l1);
+
+        }
         listview.setAdapter(clientListAdapter);
 
         ImageButton sendfile = (ImageButton) getActivity().findViewById(R.id.btnsendfile);
@@ -158,6 +164,7 @@ public class ActiveUsersFragment extends Fragment {
         checkAll.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                clientListAdapter.notifyDataSetChanged();
                 for (ClientModel aa : l1) {
                     aa.setClientSelected(checkAllFlag);
                 }
@@ -180,9 +187,9 @@ public class ActiveUsersFragment extends Fragment {
             @Override
             public void onClick(View v) {
                 if (SendUtil.checkConnection(client, iam)) {
-                   // Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
-                   // intent.setType("file/*");
-                   // startActivityForResult(intent, FILE_SELECT_CODE);
+                    // Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+                    // intent.setType("file/*");
+                    // startActivityForResult(intent, FILE_SELECT_CODE);
                     openFolder();
                     Toast.makeText(getActivity(),
                             "INfo Message", Toast.LENGTH_LONG).show();
@@ -196,6 +203,10 @@ public class ActiveUsersFragment extends Fragment {
             public void onClick(View v) {
                 if (SendUtil.checkConnection(client, iam)) {
                     // takePicture();
+                    fileToSend= new FileChunkMessageV2();
+                    fileToSend.setSenderName(iam.getUserName());
+                    fileToSend.setSenderID(iam.getUserID());
+                    fileToSend.setRecivers(getSelectedRecivers());
                     captureAndSavePicture();
                 } else {
                     Toast.makeText(getActivity(), "Connection Failed", Toast.LENGTH_SHORT).show();
@@ -250,6 +261,8 @@ public class ActiveUsersFragment extends Fragment {
             @Override
             public void onClick(View v) {
                 if (SendUtil.checkConnection(client, iam)) {
+                    fileToSend = new FileChunkMessageV2();
+                    fileToSend.setRecivers(getSelectedRecivers());
                     Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
                     intent.setType("file/*");
                     startActivityForResult(intent, EXAM_SELECT_CODE);
@@ -273,6 +286,23 @@ public class ActiveUsersFragment extends Fragment {
             }
         });
 
+       /* l1.add(new ClientModel("15", "ali", R.drawable.unknown));
+        l1.add(new ClientModel("16", "ali1", R.drawable.unknown));
+        l1.add(new ClientModel("17", "ali2", R.drawable.unknown));
+        l1.add(new ClientModel("18", "ali3", R.drawable.unknown));
+        l1.add(new ClientModel("19", "ali4", R.drawable.unknown));
+        l1.add(new ClientModel("20", "ali5", R.drawable.unknown));
+        l1.add(new ClientModel("21", "ali6", R.drawable.unknown));
+        l1.add(new ClientModel("22", "ali7", R.drawable.unknown));
+        l1.add(new ClientModel("23", "ali8", R.drawable.unknown));
+        l1.add(new ClientModel("24", "ali9", R.drawable.unknown));
+        l1.add(new ClientModel("9", "ali10", R.drawable.unknown));
+        l1.add(new ClientModel("66", "ali10", R.drawable.unknown));
+        l1.add(new ClientModel("67", "ali10", R.drawable.unknown));
+        l1.add(new ClientModel("68", "ali10", R.drawable.u31));*/
+        //updateActiveListContent();
+        Log.d("LIFE", "END onActivityCreated()");
+
     }
 
     public void setActiveUsersList(List tlist) {
@@ -292,67 +322,54 @@ public class ActiveUsersFragment extends Fragment {
         super.onActivityResult(requestCode, resultCode, data);
 
         ///  here get notified that file open completed
+        Log.d("LIFE", "onActivity result");
 
         if (requestCode == FILE_SELECT_CODE && resultCode == Activity.RESULT_OK
                 && null != data) {
-            try {
+            //try {
             final Uri uri = data.getData();
-            String path = getRealPathFromURI(uri);
-            Log.d("INFO", path);
-            //  path = uri.getPath();
-            Log.d("INFO", path);
-            Toast.makeText(getActivity(),
-                    "File Loadded Copletely", Toast.LENGTH_SHORT).show();
-
-            Log.d("INFO", iam.getUserName());
-            Log.d("INFO", iam.getUserType());
-
-            FileChunkMessageV2 fblock = new FileChunkMessageV2();
-            fblock.setSenderName(iam.getUserName());
-            fblock.setSenderID(iam.getUserID());
-            fblock.setFileName(FilenameUtils.getName(path));
-            fblock.setRecivers(getSelectedRecivers());
-
-                Log.d("INFO", "READ AND SEND FILE HERE");
-                if (SendUtil.checkConnection(client, iam)) {
-                    SendUtil.readAndSendFile(getActivity(), path, client, iam, getSelectedRecivers(), FileChunkMessageV2.FILE);
-                    Log.d("OK", "Convert FileTO MODEl");
-                    SendUtil.convertFileChunkToChatMessageModl(getActivity(), path, fblock, allStudentsLists);
-                } else {
-                    Toast.makeText(getActivity(), "Connection Failed", Toast.LENGTH_SHORT).show();
-
+            final String path = getRealPathFromURI(uri);
+            fileToSend.setSenderName(iam.getUserName());
+            fileToSend.setSenderID(iam.getUserID());
+            fileToSend.setFileName(FilenameUtils.getName(path));
+            //   if (SendUtil.checkConnection(client, iam)) {
+            Thread sendT  = new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        SendUtil.readAndSendFile(getActivity(), path, client, iam, fileToSend.getRecivers(), FileChunkMessageV2.FILE);
+                        SendUtil.convertFileChunkToChatMessageModl(getActivity(), path, fileToSend, allStudentsLists);
+                    } catch (Exception ex) {
+                        Toast.makeText(getActivity(),
+                                "Error While Sending file", Toast.LENGTH_SHORT).show();
+                        ex.printStackTrace();
+                    }
                 }
-
-            } catch (IOException e) {
-                Toast.makeText(getActivity(),
-                        "Error While Sending file", Toast.LENGTH_SHORT).show();
-                e.printStackTrace();
-
-
-            }
+            });
+            sendT.setPriority(Thread.MAX_PRIORITY);
+            sendT.start();
         } else if (requestCode == EXAM_SELECT_CODE && resultCode == Activity.RESULT_OK
                 && null != data) {
             try {
-            final Uri uri = data.getData();
-            String path = getRealPathFromURI(uri);
-            Log.d("INFO", path);
-            Toast.makeText(getActivity(),
-                    "Exam Loaded", Toast.LENGTH_SHORT).show();
+                final Uri uri = data.getData();
+                String path = getRealPathFromURI(uri);
+                // Log.d("INFO", path);
+                Toast.makeText(getActivity(),
+                        "Exam Loaded", Toast.LENGTH_SHORT).show();
 
-            Log.d("INFO", iam.getUserName());
-            Log.d("INFO", iam.getUserType());
+                // Log.d("INFO", iam.getUserName());
+                // Log.d("INFO", iam.getUserType());
 
-            FileChunkMessageV2 fblock = new FileChunkMessageV2();
-            fblock.setSenderName(iam.getUserName());
-            fblock.setSenderID(iam.getUserID());
+                //FileChunkMessageV2 fblock = new FileChunkMessageV2();
+                fileToSend.setSenderName(iam.getUserName());
+                fileToSend.setSenderID(iam.getUserID());
 
-                Log.d("INFO", "READ AND SEND EXAM HERE");
-                if (SendUtil.checkConnection(client, iam)) {
-                    SendUtil.readAndSendFile(getActivity(), path, client, iam, getSelectedRecivers(), FileChunkMessageV2.EXAM);
-                } else {
-                    Toast.makeText(getActivity(), "Connection Failed", Toast.LENGTH_SHORT).show();
 
-                }
+                SendUtil.readAndSendFile(getActivity(), path, client, iam, fileToSend.getRecivers(), FileChunkMessageV2.EXAM);
+
+                Toast.makeText(getActivity(), "Connection Failed", Toast.LENGTH_SHORT).show();
+
+
 
             } catch (IOException e) {
                 Toast.makeText(getActivity(),
@@ -380,28 +397,29 @@ public class ActiveUsersFragment extends Fragment {
 
         }
 
+        Log.d("LIFE", "END onActivity result");
+
     }
 
-    public void openFolder()
-    {
+    public void openFolder() {
+        fileToSend = new FileChunkMessageV2();
+        fileToSend.setRecivers(getSelectedRecivers());
         Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
         Uri uri = Uri.parse(Environment.getExternalStorageDirectory().getPath()
                 + "/Classroom/");
         intent.setDataAndType(uri, "file/*");
-        startActivityForResult(Intent.createChooser(intent, "Open folder"),FILE_SELECT_CODE);
+        startActivityForResult(Intent.createChooser(intent, "Open folder"), FILE_SELECT_CODE);
     }
 
     private void SendCauptureImageAsFile(String cappath) {
-        FileChunkMessageV2 fblock = new FileChunkMessageV2();
-        fblock.setSenderName(iam.getUserName());
-        fblock.setSenderID(iam.getUserID());
-        fblock.setFileName(FilenameUtils.getName(cappath));
-        fblock.setRecivers(getSelectedRecivers());
+
+        fileToSend.setFileName(FilenameUtils.getName(cappath));
+
         try {
             Log.d("INFO", "READ AND SEND FILE HERE");
-            SendUtil.readAndSendFile(getActivity(), cappath, client, iam, getSelectedRecivers(), FileChunkMessageV2.FILE);
+            SendUtil.readAndSendFile(getActivity(), cappath, client, iam, fileToSend.getRecivers(), FileChunkMessageV2.FILE);
             Log.d("OK", "Convert FileTO MODEl");
-            SendUtil.convertFileChunkToChatMessageModl(getActivity(), cappath, fblock, allStudentsLists);
+            SendUtil.convertFileChunkToChatMessageModl(getActivity(), cappath, fileToSend, allStudentsLists);
 
         } catch (IOException e) {
             Toast.makeText(getActivity(),

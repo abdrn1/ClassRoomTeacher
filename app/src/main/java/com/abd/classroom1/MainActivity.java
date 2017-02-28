@@ -161,7 +161,7 @@ public class MainActivity extends AppCompatActivity
 
        // examResultModels = new ArrayList<>(); // for saving exam result
         //examResultModels.add(aa);
-        clientsList = new ArrayList<>();// for saving active clients
+        clientsList = Collections.synchronizedList(new ArrayList<ClientModel>());// for saving active clients
         clientStatus = getResources().getStringArray(R.array.client_status); // String Array of clients status
 
 
@@ -344,6 +344,8 @@ public class MainActivity extends AppCompatActivity
                 }
             }
 
+        }else if(id==R.id.mi_img_viewer){
+            //showImageViewer("");
         }
 
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
@@ -425,6 +427,7 @@ public class MainActivity extends AppCompatActivity
                                     messageService.setActivity(MainActivity.this);
                                     messageService.setClientsList(clientsList);
                                     messageService.addClientListener();
+                                    messageService.setsBounded(true);
                                     Log.i("info", "Listener set to Service");
                                 }
                                 Log.d("INFO", "Succesfull Log IN");
@@ -580,9 +583,6 @@ public class MainActivity extends AppCompatActivity
 
             if ((activeFragmentID == MESSSAGEVIWERFRAG) && (messageViewerFragment != null)) {
                 Log.d("info", " Display on Message Viewer");
-
-                // messageViewerFragment.setMessagesList(chatMessageModelList);
-                //messageViewerFragment.addNewMessage(simplem,false);
                 messageViewerFragment.updateMessageListContent();
 
             } else {
@@ -610,8 +610,6 @@ public class MainActivity extends AppCompatActivity
         if ((activeFragmentID == MESSSAGEVIWERFRAG) && (messageViewerFragment != null)) {
             Log.d("info", " Display on Message Viewer");
 
-            // messageViewerFragment.setMessagesList(chatMessageModelList);
-            //messageViewerFragment.addNewMessage(simplem,false);
             messageViewerFragment.updateMessageListContent();
 
         } else {
@@ -843,7 +841,7 @@ public class MainActivity extends AppCompatActivity
 
     @Override
     protected void onRestart() {
-        Log.d("INFO", "On Restart");
+        Log.d("LIFE", "On Restart");
         super.onRestart();
         try {
 
@@ -858,14 +856,14 @@ public class MainActivity extends AppCompatActivity
 
     @Override
     protected void onStart() {
-        Log.d("INFO","onStart");
+        Log.d("LIFE","onStart");
         super.onStart();
         onStartIni();
     }
 
     @Override
     protected void onStop() {
-        Log.d("INFO","onStop");
+        Log.d("LIFE","onStop");
         super.onStop();
         messageService.setsBounded(false);
     }
@@ -878,22 +876,23 @@ public class MainActivity extends AppCompatActivity
         if (mBound) {
             Log.d("INFO", "bounded with service");
             if ((messageService.isClientOnline())) {
-                Log.d("INFO", "Client Online");
+                Log.d("LIFE", "Bounded Fetch From Service");
 
                 messageService.setsBounded(true);
                 this.client = messageService.getClient();
                 this.iam = messageService.getIam();
+
                 this.allStudentsLists = messageService.getAllStudentsLists();
                 this.clientsList = messageService.getClientsList();
                 messageService.setActivity(this);
+                updateClientsList();
+               if (messageViewerFragment != null){
+                   try{
+                       messageViewerFragment.updateMessageListContent();
+                   }catch (Exception ex){
 
-
-                if((client ==null) && (iam ==null)){
-                    prepareConnection();
-                    showLoginFragment();
-                   // new Thread(this).start();
-
-                }
+                   }
+               }
 
             }
         } else {
@@ -903,7 +902,7 @@ public class MainActivity extends AppCompatActivity
             showLoginFragment();
 
         }
-        Log.i("life", "Bind To Service");
+        Log.i("life", "END Bind To Service");
     }
 
     public void ShowMonitorViewer(String[] receivers) {
@@ -979,7 +978,7 @@ public class MainActivity extends AppCompatActivity
     public void updateClientsList() {
         Log.d("Info","try to update clients list frag ID :" + activeFragmentID);
         try {
-            if (activeFragmentID == ACTIVEUSERSFRAG ) {
+            if (activeusersfragment!=null ) {
 
                 activeusersfragment.updateActiveListContent();
                 Log.d("Info","update clients list");

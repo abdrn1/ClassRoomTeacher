@@ -1,10 +1,15 @@
 package com.abd.classroom1;
 
+import android.app.Activity;
 import android.app.Fragment;
 import android.content.Context;
+import android.content.Intent;
+import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Environment;
+import android.provider.MediaStore;
 import android.support.v4.view.GestureDetectorCompat;
 import android.util.Log;
 import android.view.GestureDetector;
@@ -30,6 +35,7 @@ import org.apache.commons.io.FilenameUtils;
  */
 public class CmImageViewerFragment extends Fragment {
 
+    private static int FILE_SELECT_CODE = 2;
     private ImageView imgView;
     private String imagePath;
     String fileName;
@@ -38,6 +44,7 @@ public class CmImageViewerFragment extends Fragment {
     Client client;
     UserLogin iam;
     private GestureDetectorCompat mDetector;
+
 
 
     class MyGestureListener implements GestureDetector.OnGestureListener {
@@ -154,7 +161,7 @@ public class CmImageViewerFragment extends Fragment {
     }
 
     public void showImage(String path) {
-        Bitmap tempImg = ScalDownImage.decodeSampledBitmapFromResource(path, 100, 100);
+        Bitmap tempImg = ScalDownImage.decodeSampledBitmapFromResource(path, 200, 200);
         imgView.setImageBitmap(tempImg);
     }
 
@@ -171,10 +178,20 @@ public class CmImageViewerFragment extends Fragment {
         ImageButton btnZoomout = (ImageButton) getActivity().findViewById(R.id.btn_zoomout);
         ImageButton btnRotate = (ImageButton) getActivity().findViewById(R.id.btn_rotate);
         ImageButton showOnBoard = (ImageButton) getActivity().findViewById(R.id.show_on_borad);
+        ImageButton openExternal = (ImageButton) getActivity().findViewById(R.id.img_open_external);
         GeneralUtil.buttonEffect(btnZoomin);
         GeneralUtil.buttonEffect(btnZoomout);
         GeneralUtil.buttonEffect(btnRotate);
         GeneralUtil.buttonEffect(showOnBoard);
+        GeneralUtil.buttonEffect(openExternal);
+
+        openExternal.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                openFolder();
+            }
+        });
+
         this.mDetector = new GestureDetectorCompat(getActivity(), new MyGestureListener());
 
         showOnBoard.setOnClickListener(new View.OnClickListener() {
@@ -191,6 +208,8 @@ public class CmImageViewerFragment extends Fragment {
                 return true;
             }
         });
+
+
 
 
         btnRotate.setOnClickListener(new View.OnClickListener() {
@@ -235,6 +254,46 @@ public class CmImageViewerFragment extends Fragment {
         showImage(imagePath);
     }
 
+    public void openFolder()
+    {
+        Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+        Uri uri = Uri.parse(Environment.getExternalStorageDirectory().getPath()
+                + "/Classroom/");
+        intent.setDataAndType(uri, "file/*");
+        startActivityForResult(Intent.createChooser(intent, "Open folder"),FILE_SELECT_CODE);
+    }
+
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+
+        ///  here get notified that file open completed
+
+        if (requestCode == FILE_SELECT_CODE && resultCode == Activity.RESULT_OK
+                && null != data) {
+            try {
+                final Uri uri = data.getData();
+                String path = getRealPathFromURI(uri);
+                showImage(path);
+            } catch (Exception ex) {
+
+            }
+        }
+    }
+
+    private String getRealPathFromURI(Uri contentURI) {
+        String result;
+        Cursor cursor = getActivity().getContentResolver().query(contentURI, null, null, null, null);
+        if (cursor == null) { // Source is Dropbox or other similar local file path
+            result = contentURI.getPath();
+        } else {
+            cursor.moveToFirst();
+            int idx = cursor.getColumnIndex(MediaStore.Images.ImageColumns.DATA);
+            result = cursor.getString(idx);
+            cursor.close();
+        }
+        return result;
+    }
     private void showOnBoard(int itemIndex) {
         // ChatMessageModel chatMessageModel = this.l1.get(itemIndex);
         ShowOnBoardMessage sob = new ShowOnBoardMessage();

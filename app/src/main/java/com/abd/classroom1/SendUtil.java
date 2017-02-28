@@ -29,8 +29,8 @@ public class SendUtil {
         //File f = new File(path) ;
 
 
-        Log.d("INFO FIle Name", FilenameUtils.getName(path));
-        Log.d("INFO","CONVERT TO ARRA");
+       // Log.d("INFO FIle Name", FilenameUtils.getName(path));
+       // Log.d("INFO","CONVERT TO ARRA");
         FileChunkMessageV2 fmsg = new FileChunkMessageV2();
         fmsg.setSenderID(currentUser.getUserID());
         fmsg.setSenderName(currentUser.getUserName());
@@ -39,7 +39,7 @@ public class SendUtil {
         fmsg.setRecivers(recivers);
         FileSenderThreadV2 ftV2 = new FileSenderThreadV2(client,path,fmsg);
         ftV2.start();
-        Log.d("INFO", "Start Thread");
+       // Log.d("INFO", "Start Thread");
     }
 
     public static void convertTextMessageToChatMessageModl(TextMeesage tm, Hashtable<String, List<ChatMessageModel>> allStudentsLists) {
@@ -68,39 +68,45 @@ public class SendUtil {
     }
 
     public static void convertFileChunkToChatMessageModl(Activity activity, String filePath, FileChunkMessageV2 tm, Hashtable<String, List<ChatMessageModel>> allStudentsLists) {
-        Log.d("OK", "Start Cnvert File  func:ConvertFileChunk");
+        Log.d("LIFE", "Start Cnvert File  func:ConvertFileChunk");
         String[] recivers = tm.getRecivers();
         List<ChatMessageModel> currList = null;
         if (recivers != null) {
             for (String rec : recivers) {
-                currList = allStudentsLists.get(rec);
-                if (currList == null) {
-                    currList = new ArrayList<ChatMessageModel>();
-                    allStudentsLists.put(rec, currList);
-                    Log.d("ERR", "No Chat List Found , func: sendutil.convertTextMess");
+                try {
+
+                    currList = allStudentsLists.get(rec);
+                    if (currList == null) {
+                        currList = new ArrayList<ChatMessageModel>();
+                        allStudentsLists.put(rec, currList);
+                      //  Log.d("ERR", "No Chat List Found , func: sendutil.convertTextMess");
+                    }
+
+                 //   Log.d("OK", "User Found = " + rec + "  func:ConvertFileChunk");
+                    Log.d("LIFE", "Convert Chunk of :"+rec);
+                    ChatMessageModel temp = new ChatMessageModel();
+                    temp.setSenderID(rec);
+                    temp.setSenderName(tm.getSenderName());
+                    temp.setFilepath(filePath);
+                    temp.setSimpleMessage(tm.getFileName());
+                    temp.setIsSelf(true);
+
+                    if (checkIfFileIsImage(tm.getFileName())) {
+                        Bitmap bm = ScalDownImage.decodeSampledBitmapFromResource(filePath, 80, 80);
+                        temp.setImage(bm);
+                        temp.setMessageType("IMG");
+                    } else {
+                        Bitmap bm = BitmapFactory.decodeResource(activity.getResources(), R.drawable.filecompleteicon);
+                        temp.setImage(bm);
+                        temp.setMessageType("FLE");
+                        // ANY FILE
+                    }
+                    currList.add(temp);
+                }catch (Exception ex){
+
                 }
-
-                Log.d("OK", "User Found = " + rec + "  func:ConvertFileChunk");
-
-                ChatMessageModel temp = new ChatMessageModel();
-                temp.setSenderID(rec);
-                temp.setSenderName(tm.getSenderName());
-                temp.setFilepath(filePath);
-                temp.setSimpleMessage(tm.getFileName());
-                temp.setIsSelf(true);
-
-                if (checkIfFileIsImage(tm.getFileName())) {
-                    Bitmap bm = ScalDownImage.decodeSampledBitmapFromResource(filePath, 80, 80);
-                    temp.setImage(bm);
-                    temp.setMessageType("IMG");
-                } else {
-                    Bitmap bm = BitmapFactory.decodeResource(activity.getResources(), R.drawable.filecompleteicon);
-                    temp.setImage(bm);
-                    temp.setMessageType("FLE");
-                    // ANY FILE
-                }
-                currList.add(temp);
             }
+
         } else {
             Log.d("OK", "ther is no reciver, func:ConvertFileChunk");
         }
